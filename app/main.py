@@ -3,10 +3,10 @@ from pathlib import Path
 
 # Use relative imports for modules within the 'app' package
 from app.config import config
-from app.data_loader import load_historical_data
+from app.data_io import load_historical_data
 from app.analysis_engine import add_indicators
 from app.strategies import strategy_functions  # Import the dictionary
-from app.backtester import SimpleBacktester
+from app.simulation_engine import SimpleBacktester
 
 # Configure root logger
 logging.basicConfig(

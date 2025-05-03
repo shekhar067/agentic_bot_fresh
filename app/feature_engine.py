@@ -12,7 +12,7 @@ from multiprocessing import cpu_count
 
 # Assuming config is in the same parent directory structure
 from app.config import config
-from app.data_loader import load_historical_data  # Import loader to get raw data
+from app.data_io import load_historical_data  # Import loader to get raw data
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -89,10 +89,6 @@ class IndicatorCalculator:
             logger.error(f"Session VWAP calculation error: {e}", exc_info=True)
             df["vwap"] = np.nan
             return df
-
-    # In app/indicator_calculator.py
-
-# (Keep imports and IndicatorCalculator class definition as before)
 
     def calculate_all_indicators(self, df: pd.DataFrame) -> pd.DataFrame:
         """ Calculates all configured indicators using pandas_ta """
@@ -227,8 +223,7 @@ class IndicatorCalculator:
             logger.error(f"Error during indicator calculation: {e}", exc_info=True)
             raise # Re-raise the error
 
-# (Keep the main function and argparse stuff as before for standalone execution)
-# ...
+
 
 
 def main():

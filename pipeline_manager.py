@@ -27,7 +27,7 @@ RUN_DATA_DIR.mkdir(exist_ok=True)
 RESULTS_DIR.mkdir(exist_ok=True) # Create results dir too
 
 # --- Configure Logging for Orchestrator ---
-log_file_path = LOGS_DIR / 'orchestrator.log'
+log_file_path = LOGS_DIR / 'pipeline_manager.log'
 root_logger = logging.getLogger()
 for handler in root_logger.handlers[:]:
     root_logger.removeHandler(handler)
@@ -41,13 +41,9 @@ logger = logging.getLogger(__name__)
 
 # Define paths to the scripts
 APP_DIR = PROJECT_ROOT / "app"
-INDICATOR_SCRIPT_PATH = APP_DIR / "indicator_calculator.py"
-BACKTEST_SCRIPT_PATH = APP_DIR / "run_backtest.py"
+INDICATOR_SCRIPT_PATH = APP_DIR / "feature_engine.py"
+BACKTEST_SCRIPT_PATH = APP_DIR / "run_simulation_step.py"
 
-# --- run_script function (remains the same) ---
-# In orchestrator.py
-
-# ... (imports and other setup remain the same) ...
 
 def run_script(script_path: Path, args_list: list = [], timeout: Optional[int] = None, log_suffix: str = "") -> bool:
     """
@@ -122,8 +118,6 @@ def run_script(script_path: Path, args_list: list = [], timeout: Optional[int] =
         return False
 
 
-# --- main_orchestration and if __name__ == "__main__": remain the same ---
-# ...
 
 # --- main_orchestration function (UPDATED FOR LOOPING) ---
 def main_orchestration():
@@ -154,6 +148,7 @@ def main_orchestration():
         indicator_data_path = RUN_DATA_DIR / indicator_filename # Save indicator file inside the run's data dir
 
         # --- Step 1: Calculate Indicators for this timeframe ---
+        
         logger.info(f"*** Phase: Indicator Calculation ({timeframe}) ***")
         if not raw_data_path.is_file():
             logger.error(f"Raw data file not found for {timeframe}: {raw_data_path}. Skipping.")
@@ -164,27 +159,30 @@ def main_orchestration():
             "--input", str(raw_data_path),
             "--output", str(indicator_data_path)
         ]
-        if not run_script(INDICATOR_SCRIPT_PATH, indicator_args, timeout=300):
+        log_suffix = f"_{timeframe}"  # Define log_suffix based on the timeframe
+        if not run_script(INDICATOR_SCRIPT_PATH, indicator_args, timeout=300, log_suffix=log_suffix):
             logger.error(f"Indicator calculation failed for {timeframe}. Stopping processing for this timeframe.")
-            overall_success = False
-            continue # Skip to next timeframe
+            overall_success = False; continue
 
         # --- Step 2: Run Backtest for this timeframe ---
-        logger.info(f"*** Phase: Backtesting ({timeframe}) ***")
+        logger.info(f"*** Phase: Run simulator ({timeframe}) ***")
         if not indicator_data_path.is_file():
             logger.error(f"Indicator file was not created for {timeframe} at: {indicator_data_path}. Cannot run backtest.")
             overall_success = False
             continue # Skip to next timeframe
-
-        # Define output path for this timeframe's backtest results (optional)
-        # backtest_output_file = RESULTS_DIR / f"backtest_summary_{timeframe}.json" # Example for saving structured results
-
+        backtest_output_json_path = RESULTS_DIR / f"backtest_summary_{timeframe}.json"
+        logger.info(f"Backtest results will be saved to: {backtest_output_json_path}")
+        # --- ADD LOGGING FOR BACKTESTING ---
+        logger.debug(f"Running backtest with arguments: {backtest_output_json_path}")
+        logger.debug(f"Indicator data path: {indicator_data_path}")
+        # --- END ADD LOGGING FOR BACKTESTING ---
+        # Run the backtest script with the indicator data
         backtest_args = [
-            "--input", str(indicator_data_path)
-            # Add output argument if run_backtest.py supports it
-            # "--output-file", str(backtest_output_file)
+            "--input", str(indicator_data_path),
+            # --- ADD THIS ARGUMENT ---
+            "--output-json", str(backtest_output_json_path)
         ]
-        if not run_script(BACKTEST_SCRIPT_PATH, backtest_args, timeout=600):
+        if not run_script(BACKTEST_SCRIPT_PATH, backtest_args, timeout=600,log_suffix=log_suffix):
             logger.error(f"Backtesting failed for {timeframe}.")
             overall_success = False
             # Continue to next timeframe even if one backtest fails? Or stop? Let's continue for now.

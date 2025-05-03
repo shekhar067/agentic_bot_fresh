@@ -4,7 +4,7 @@ import pandas as pd
 import pandas_ta as ta
 import logging
 import numpy as np  # Import numpy
-from .config import config
+from app.config import config
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(

@@ -4,87 +4,83 @@
     <meta charset="UTF-8">
     <title>Trading Bot Dashboard</title>
     <style>
-    body { font-family: Arial, sans-serif; background: #f5f5f5; color: #333; }
-    .container { max-width: 1100px; margin: 20px auto; padding: 20px; background: #fff; /* Wider container */
-                 border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    h2,h3 { color: #555; margin-top: 0; margin-bottom: 15px;}
-    .section { margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
-    .section:last-child { border-bottom: none; }
-    label { display: inline-block; width: 140px; font-weight: bold; margin-bottom: 8px; vertical-align: middle; }
-    select, input[type=number], input[type=date], input[type=text], button {
-        margin-bottom: 10px; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; vertical-align: middle;
-        box-sizing: border-box; /* Include padding and border in element's total width and height */
-    }
-    select { width: 220px; }
-    input[type=number] { width: 90px; }
-    input[type=date], input[type=text] { width: 190px; }
-    button { background: #4CAF50; color: #fff; cursor: pointer; font-weight: bold; border: none; }
-    button:hover { background: #45a049; }
-    button:disabled { background: #ccc; cursor: not-allowed; }
-    .run-controls, .view-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 15px; }
-    .control-group { margin-right: 20px; margin-bottom: 10px;} /* Group related controls */
-
-    #resultsDisplay { margin-top: 20px; background: #f9f9f9; padding: 20px; border: 1px solid #eee; border-radius: 4px; }
-    #status-message { margin-top: 15px; font-weight: bold; min-height: 1.2em; text-align: center; padding: 10px; border-radius: 4px;}
-    .status-running { background-color: #fffbe6; border: 1px solid #ffe58f; color: #fa8c16; }
-    .status-success { background-color: #f6ffed; border: 1px solid #b7eb8f; color: #52c41a; }
-    .status-error   { background-color: #fff1f0; border: 1px solid #ffa39e; color: #f5222d; }
-    .status-idle    { background-color: #fafafa; border: 1px solid #d9d9d9; color: #888; }
-
-    /* Tab Styles from your report */
-    .tab-buttons button { background-color: #eee; border: 1px solid #ccc; padding: 10px 15px; cursor: pointer; transition: background-color 0.3s; border-radius: 4px 4px 0 0; margin-right: 2px; font-size: 1em; border-bottom: none; }
-    .tab-buttons button.active { background-color: #3498db; color: white; border: 1px solid #3498db; border-bottom: 1px solid white; position: relative; top: 1px; }
-    .tab-content { display: none; padding: 20px; border: 1px solid #ccc; border-radius: 0 4px 4px 4px; background-color: #fff; animation: fadeIn 0.5s; }
-    .tab-content.active { display: block; }
-    @keyframes fadeIn { from {opacity: 0;} to {opacity: 1;} }
-
-    /* Table Styles from your report */
-    table.performance-table { border-collapse: collapse; width: 100%; margin-bottom: 25px; font-size: 0.9em; }
-    th, td { border: 1px solid #ddd; padding: 10px 12px; text-align: right; }
-    th { background-color: #3498db; color: white; text-align: center; font-weight: 600; }
-    tr:nth-child(even) { background-color: #f9f9f9; }
-    tr:hover { background-color: #f1f1f1; }
-    .metric-card { border: 1px solid #e0e0e0; border-radius: 6px; padding: 20px; margin-bottom: 25px; background-color: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
-
+        /* --- Keep all your previous CSS styles --- */
+        body { font-family: Arial, sans-serif; background: #f5f5f5; color: #333; }
+        .container { max-width: 1200px; margin: 20px auto; padding: 20px; background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h2,h3,h4 { color: #555; margin-top: 0; margin-bottom: 15px; }
+        .section { margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
+        .section:last-child { border-bottom: none; }
+        label { display: inline-block; width: 140px; font-weight: bold; margin-bottom: 8px; vertical-align: middle; }
+        select, input[type=number], input[type=date], input[type=text], button { margin-bottom: 10px; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; vertical-align: middle; box-sizing: border-box; }
+        select { width: 220px; }
+        input[type=number] { width: 90px; }
+        input[type=date], input[type=text] { width: 190px; }
+        button { background: #4CAF50; color: #fff; cursor: pointer; font-weight: bold; border: none; }
+        button:hover { background: #45a049; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .run-controls, .view-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 15px; }
+        #resultsDisplay { margin-top: 20px; background: #f9f9f9; padding: 0; border: none; border-radius: 4px; } /* Adjusted padding/border */
+        #status-message { margin-top: 15px; font-weight: bold; min-height: 1.2em; text-align: center; padding: 10px; border-radius: 4px;}
+        .status-running { background-color: #fffbe6; border: 1px solid #ffe58f; color: #fa8c16; }
+        .status-success { background-color: #f6ffed; border: 1px solid #b7eb8f; color: #52c41a; }
+        .status-error   { background-color: #fff1f0; border: 1px solid #ffa39e; color: #f5222d; }
+        .status-idle    { background-color: #fafafa; border: 1px solid #d9d9d9; color: #888; }
+        .tab-buttons { border-bottom: 1px solid #ccc; padding-left: 5px; margin-bottom: -1px; /* Overlap border */ }
+        .tab-buttons button { background-color: #eee; border: 1px solid #ccc; padding: 10px 15px; cursor: pointer; transition: background-color 0.3s; border-radius: 4px 4px 0 0; margin-right: 2px; font-size: 1em; border-bottom: none; }
+        .tab-buttons button.active { background-color: #fff; color: #3498db; border: 1px solid #ccc; border-bottom: 1px solid white; position: relative; top: 1px; font-weight: bold; }
+        .tab-content { display: none; padding: 20px; border: 1px solid #ccc; border-top: none; border-radius: 0 4px 4px 4px; background-color: #fff; animation: fadeIn 0.5s; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from {opacity: 0;} to {opacity: 1;} }
+        table.performance-table { border-collapse: collapse; width: 100%; margin-bottom: 20px; font-size: 0.9em; }
+        th, td { border: 1px solid #ddd; padding: 8px 10px; text-align: right; white-space: nowrap; }
+        th { background-color: #e9e9e9; color: #333; text-align: center; font-weight: bold; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        tr.details-row:hover { background-color: #f1f1f1; } /* Hover for trade details only */
+        .summary-card { border: 1px solid #eee; border-radius: 5px; padding: 15px; margin-bottom: 20px; background: #fff; }
+        .summary-card p { margin: 5px 0; font-size: 0.95em;}
+        .summary-card strong { display: inline-block; min-width: 120px; color: #555;}
+        .trade-table-container { margin-top: 20px; max-height: 400px; overflow-y: auto; border-top: 1px solid #eee; padding-top: 15px; }
+        .profit { color: green; } .loss { color: red; } .neutral{ color: #555; } /* Simplified PnL color */
     </style>
 </head>
 <body>
 <div class="container">
-  <h2>Trading Bot Backtester</h2>
+    <h2>Trading Bot Backtester</h2>
 
-  <div class="section">
-      <h3>Run New Backtest</h3>
-      <form id="backtestRunForm">
-          <div class="run-controls">
-              <p>Click "Run" to start a new backtest using default settings (all configured timeframes).</p>
-              <button type="submit" id="runButton">Run Backtest</button>
-              <span id="loadingIndicator" style="display:none;">⏳ Running Backtest...</span>
-          </div>
-      </form>
-  </div>
+    <div class="section">
+        <h3>Run New Backtest</h3>
+        <form id="backtestRunForm">
+            <div class="run-controls">
+                <p>Click "Run" to start a new backtest using default settings (all configured timeframes & strategies).</p>
+                <button type="submit" id="runButton">Run Backtest</button>
+                <span id="loadingIndicator" style="display:none;">⏳ Running Backtest...</span>
+            </div>
+        </form>
+    </div>
 
-   <div class="section">
-      <h3>View Past Results</h3>
-      <div class="view-controls">
-          <label for="runSelector">Select Run ID:</label>
-          <select id="runSelector" name="run_id">
-              <option value="">-- Loading Runs --</option>
-          </select>
-          <button id="viewButton" disabled>View Results</button>
-      </div>
-  </div>
+     <div class="section">
+        <h3>View Past Results</h3>
+        <div class="view-controls">
+            <label for="runSelector">Select Run ID:</label>
+            <select id="runSelector" name="run_id">
+                <option value="">-- Loading Runs --</option>
+            </select>
+            <button id="viewButton" disabled>View Results</button>
+        </div>
+    </div>
 
-  <div id="status-message" class="status-idle">Select parameters or a past run.</div>
+    <div id="status-message" class="status-idle">Select parameters or a past run.</div>
 
-  <div id="resultsDisplay" style="display: none;">
-      <h3>Results for Run ID: <span id="resultsRunId"></span></h3>
-      <div id="resultsTabsContainer">
-          </div>
-  </div>
+    <div id="resultsDisplay" style="display: none;">
+        <h3>Results for Run ID: <span id="resultsRunId"></span></h3>
+        <div id="resultsTabsContainer">
+            </div>
+    </div>
 
 </div>
 
 <script>
+    // --- Get DOM Elements ---
     const runForm = document.getElementById('backtestRunForm');
     const runButton = document.getElementById('runButton');
     const loadingIndicator = document.getElementById('loadingIndicator');
@@ -94,60 +90,184 @@
     const resultsDisplay = document.getElementById('resultsDisplay');
     const resultsRunId = document.getElementById('resultsRunId');
     const resultsTabsContainer = document.getElementById('resultsTabsContainer');
-    let currentStatusCheckInterval = null; // To store interval ID
+    let currentStatusCheckInterval = null;
+    let currentRunData = null; // Store fetched data globally for tab/select changes
 
-    // --- Function to Update Status ---
+    // --- Helper Functions ---
     function updateStatus(message, type = 'idle', isRunning = false) {
         statusMessage.textContent = message;
-        statusMessage.className = `status-${type}`; // Use class for styling
-        runButton.disabled = isRunning; // Disable run button if running
+        statusMessage.className = `status-${type}`;
+        runButton.disabled = isRunning;
         loadingIndicator.style.display = isRunning ? 'inline' : 'none';
     }
 
-    // --- Function to Poll Status ---
-    function pollStatus(runId) {
-        if (currentStatusCheckInterval) {
-            clearInterval(currentStatusCheckInterval); // Clear previous interval if any
-        }
-        updateStatus(`Checking status for run ${runId}...`, 'running', true);
-
-        currentStatusCheckInterval = setInterval(async () => {
-            try {
-                const resp = await fetch('/status');
-                if (!resp.ok) {
-                    clearInterval(currentStatusCheckInterval);
-                    updateStatus(`Error checking status: ${resp.statusText}`, 'error');
-                    return;
-                }
-                const statusData = await resp.json();
-
-                if (statusData.run_id === runId) {
-                    if (statusData.running) {
-                        updateStatus(statusData.message || `Running run ${runId}...`, 'running', true);
-                    } else {
-                        clearInterval(currentStatusCheckInterval);
-                        if (statusData.error) {
-                            updateStatus(`Run ${runId} failed: ${statusData.error}`, 'error');
-                        } else {
-                            updateStatus(`Run ${runId} complete. Fetching results...`, 'success');
-                            fetchAndDisplayResults(runId); // Fetch results once complete
-                        }
-                    }
-                } else if (!statusData.running) {
-                    // If backend reports not running, but runId doesn't match, stop polling
-                    clearInterval(currentStatusCheckInterval);
-                    // Don't override status if it's idle from a different run completion
-                    if (statusMessage.textContent.includes(runId) && statusMessage.className.includes('running')) {
-                         updateStatus(`Run ${runId} status unknown or completed earlier.`, 'idle');
-                    }
-                }
-            } catch (err) {
-                console.error("Error polling status:", err);
-                clearInterval(currentStatusCheckInterval);
-                updateStatus(`Error polling status: ${err.message}`, 'error');
-            }
-        }, 3000); // Poll every 3 seconds
+    function formatNum(v, d = 2, suffix = '', naVal = '-') {
+        return (v != null && typeof v === 'number' && !isNaN(v)) ? v.toFixed(d) + suffix : naVal;
     }
+
+    // --- Tab Handling ---
+    function openTab(evt, tabName) {
+        let i, tabcontent, tablinks;
+        tabcontent = resultsTabsContainer.getElementsByClassName("tab-content");
+        for (i = 0; i < tabcontent.length; i++) { tabcontent[i].style.display = "none"; tabcontent[i].classList.remove("active"); }
+        tablinks = resultsTabsContainer.getElementsByClassName("tab-button");
+        for (i = 0; i < tablinks.length; i++) { tablinks[i].classList.remove("active"); }
+        let currentTab = document.getElementById(tabName);
+        if (currentTab) { currentTab.style.display = "block"; currentTab.classList.add("active"); }
+        if (evt && evt.currentTarget) { evt.currentTarget.classList.add("active"); }
+    }
+
+    // --- Function to Populate Trade Table ---
+    function populateTradeTable(timeframe, strategyName) {
+        const tableBody = document.getElementById(`tradeTableBody_${timeframe}`);
+        if (!tableBody || !currentRunData || !currentRunData.timeframes[timeframe]) {
+            console.error("Could not find table body or data for", timeframe, strategyName);
+            return;
+        }
+        const trades = currentRunData.timeframes[timeframe]?.trades?.[strategyName] || [];
+        tableBody.innerHTML = ""; // Clear previous trades
+
+        if (trades.length > 0) {
+            trades.forEach(t => {
+                const row = document.createElement('tr');
+                row.classList.add('details-row'); // Add class for potential styling/hover
+                const profitClass = t.PnL_Points == null ? 'neutral' : (t.PnL_Points >= 0 ? 'profit' : 'loss');
+                 // --- Formatting helpers specific to trade data ---
+                const formatDt = (iso) => iso ? new Date(iso).toLocaleString('en-GB') : '-';
+                const posClass = t.Position === 'long' ? 'profit' : (t.Position === 'short' ? 'loss' : 'neutral'); // Use PnL colors for pos
+
+                row.innerHTML = `
+                    <td style="text-align:left;" class="${posClass}">${t.Position || '-'}</td>
+                    <td style="text-align:left;">${formatDt(t.EntryTime)}</td>
+                    <td>${formatNum(t.EntryPrice)}</td>
+                    <td style="text-align:left;">${formatDt(t.ExitTime)}</td>
+                    <td>${formatNum(t.ExitPrice)}</td>
+                    <td style="text-align:left;">${t.ExitReason || '-'}</td>
+                    <td class="${profitClass}">${formatNum(t.PnL_Points)}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        } else {
+            tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#666">No trades executed for this strategy</td></tr>`;
+        }
+    }
+
+
+    // --- Function to Build UI from JSON Data ---
+    function buildResultsUI(data) {
+        currentRunData = data; // Store data globally
+        resultsTabsContainer.innerHTML = ""; // Clear previous UI
+        resultsRunId.textContent = data.run_id || "N/A";
+
+        const timeframes = Object.keys(data.timeframes || {});
+        if (timeframes.length === 0) {
+             resultsTabsContainer.innerHTML = "<p>No timeframe data found in results.</p>"; return;
+        }
+
+        // 1. Create Tab Buttons
+        const tabButtonsDiv = document.createElement('div');
+        tabButtonsDiv.className = 'tab-buttons';
+        timeframes.forEach((tf, index) => {
+            const button = document.createElement('button');
+            button.className = `tab-button ${index === 0 ? 'active' : ''}`;
+            button.textContent = tf;
+            // Use an arrow function for onclick to correctly pass tf
+            button.onclick = (event) => openTab(event, tf);
+            tabButtonsDiv.appendChild(button);
+        });
+        resultsTabsContainer.appendChild(tabButtonsDiv);
+
+        // 2. Create Tab Content Divs
+        timeframes.forEach((tf, index) => {
+            const tfData = data.timeframes[tf];
+            const tabContentDiv = document.createElement('div');
+            tabContentDiv.id = tf;
+            tabContentDiv.className = `tab-content ${index === 0 ? 'active' : ''}`;
+
+            let contentHTML = `<h2>Results for Timeframe: ${tf}</h2>`;
+
+            // --- Metrics Section ---
+            if (tfData && tfData.metrics && Object.keys(tfData.metrics).length > 0) {
+                contentHTML += `<h3>Performance Summary</h3><div class="summary-card">`;
+                // Create metrics table (can improve formatting)
+                contentHTML += `<table class="performance-table"><thead><tr><th>Strategy</th><th>Total PnL</th><th>Trades</th><th>Win Rate</th></tr></thead><tbody>`;
+                for (const [stratName, metrics] of Object.entries(tfData.metrics)) {
+                    const pnlClass = metrics.total_pnl == null ? 'neutral' : (metrics.total_pnl >= 0 ? 'profit' : 'loss');
+                    contentHTML += `<tr>
+                        <td style="text-align:left;">${stratName}</td>
+                        <td class="${pnlClass}">${formatNum(metrics.total_pnl)}</td>
+                        <td>${metrics.trade_count ?? '-'}</td>
+                        <td>${formatNum(metrics.win_rate, 2, '%')}</td>
+                    </tr>`;
+                }
+                contentHTML += `</tbody></table></div>`;
+            } else if (tfData && tfData.error){
+                 contentHTML += `<p style="color:red">Error loading metrics: ${tfData.error}</p>`;
+            } else {
+                 contentHTML += `<p>No summary metrics available.</p>`;
+            }
+
+             // --- Trade Details Section ---
+            contentHTML += `<h3>Trade Details</h3>`;
+            if (tfData && tfData.trades && Object.keys(tfData.trades).length > 0) {
+                // Strategy Selector Dropdown
+                contentHTML += `<div class="control-group"><label for="strategySelect_${tf}">Select Strategy:</label>
+                                <select id="strategySelect_${tf}">`;
+                const strategiesWithTrades = Object.entries(tfData.trades)
+                                                .filter(([_, trades]) => trades && trades.length > 0)
+                                                .map(([name, _]) => name);
+
+                if(strategiesWithTrades.length > 0) {
+                    strategiesWithTrades.forEach(stratName => {
+                         contentHTML += `<option value="${stratName}">${stratName}</option>`;
+                    });
+                } else {
+                     contentHTML += `<option value="">-- No Strategies with Trades --</option>`;
+                }
+                contentHTML += `</select></div>`;
+
+                // Trade Table Container
+                contentHTML += `<div class="trade-table-container">
+                    <table class="performance-table trade-details">
+                         <thead><tr>
+                             <th>Position</th><th>Entry Time</th><th>Entry Price</th>
+                             <th>Exit Time</th><th>Exit Price</th><th>Exit Reason</th>
+                             <th>PnL (Points)</th>
+                          </tr></thead>
+                         <tbody id="tradeTableBody_${tf}">
+                            <tr><td colspan="7" style="text-align:center;color:#666">Select a strategy to view trades</td></tr>
+                         </tbody>
+                    </table>
+                </div>`;
+            } else if (tfData && !tfData.error){ // Only show message if no error loading metrics
+                contentHTML += `<p>No trade details available for any strategy.</p>`;
+            }
+            // Error message for trades handled by overall timeframe error check
+
+            tabContentDiv.innerHTML = contentHTML;
+            resultsTabsContainer.appendChild(tabContentDiv);
+
+             // Add event listener AFTER element exists in DOM
+            const strategySelector = document.getElementById(`strategySelect_${tf}`);
+            if (strategySelector) {
+                strategySelector.onchange = () => {
+                     populateTradeTable(tf, strategySelector.value);
+                };
+                // Initially populate table for the first strategy in the dropdown
+                if (strategySelector.options.length > 0 && strategySelector.value) {
+                     // Use setTimeout to ensure rendering is complete
+                     setTimeout(() => populateTradeTable(tf, strategySelector.value), 0);
+                }
+            }
+
+        }); // End timeframe loop
+
+        resultsDisplay.style.display = 'block'; // Show results area
+         // Ensure first tab content is displayed if needed (sometimes CSS handles this)
+        const firstActiveTab = resultsTabsContainer.querySelector('.tab-content.active');
+        if(firstActiveTab) firstActiveTab.style.display = 'block';
+
+    } // End buildResultsUI
 
 
     // --- Function to Fetch and Display Results ---
@@ -156,167 +276,63 @@
             resultsDisplay.style.display = 'none';
             return;
         }
-        updateStatus(`Workspaceing results for run ${runId}...`, 'running', runButton.disabled); // Keep button state
+        updateStatus(`Workspaceing results for run ${runId}...`, 'running', runButton.disabled);
         resultsTabsContainer.innerHTML = '<p>Loading results...</p>';
         resultsDisplay.style.display = 'block';
-        resultsRunId.textContent = runId;
+
 
         try {
             const resp = await fetch(`/results/${runId}`);
-            if (!resp.ok) {
-                let errorMsg = `HTTP ${resp.status}: ${resp.statusText}`;
-                try { const errJson = await resp.json(); errorMsg = errJson.error || errorMsg; } catch(e){}
-                throw new Error(errorMsg);
+            if (!resp.ok) { /* ... error handling ... */
+                 let errorMsg = `HTTP ${resp.status}: ${resp.statusText}`; try { const errJson = await resp.json(); errorMsg = errJson.error || errorMsg; } catch(e){} throw new Error(errorMsg);
             }
-            const resultsData = await resp.json();
+            const resultsData = await resp.json(); // This is the structured JSON
 
-            if (resultsData.error) {
-                throw new Error(resultsData.error);
-            }
+            if (resultsData.error) throw new Error(resultsData.error);
+            if (!resultsData.timeframes) throw new Error("No timeframe data found in response.");
 
-            // Inject the HTML report content directly
-            resultsTabsContainer.innerHTML = resultsData.html_report || '<p>No report content found.</p>';
-            // Re-initialize the first tab after injecting HTML
-            var firstButton = resultsTabsContainer.querySelector('.tab-buttons button');
-             if (firstButton) {
-                  // Need to trigger the click simulation correctly
-                  // setTimeout(() => firstButton.click(), 0); // Doesn't always work reliably after innerHTML replace
-                  // Manually activate the first tab content
-                 const firstTabName = firstButton.getAttribute('onclick').match(/'([^']+)'/)[1];
-                 openTab(null, firstTabName, true); // Pass flag to force activation
-             }
+            buildResultsUI(resultsData); // Call function to build UI from JSON
 
-            // Only update final status if we weren't already showing an error
-            if (!statusMessage.className.includes('error')) {
-                updateStatus(`Results loaded for run ${runId}.`, 'success');
+            if (!statusMessage.className.includes('error')) { // Update status if no prior error
+                 updateStatus(`Results loaded for run ${runId}.`, 'success');
             }
 
-        } catch (err) {
-            console.error(`Error fetching results for ${runId}:`, err);
-            resultsTabsContainer.innerHTML = `<p style="color:red;">Error loading results: ${err.message}</p>`;
-            updateStatus(`Error loading results for ${runId}.`, 'error');
-        } finally {
-             // Re-enable run button ONLY IF the global status says not running
-             fetch('/status').then(r => r.json()).then(s => {
-                 if (!s.running) runButton.disabled = false;
-             });
+        } catch (err) { /* ... error handling ... */
+             console.error(`Error fetching results for ${runId}:`, err); resultsTabsContainer.innerHTML = `<p style="color:red;">Error loading results: ${err.message}</p>`; updateStatus(`Error loading results for ${runId}.`, 'error');
+        } finally { /* ... re-enable button logic ... */
+             fetch('/status').then(r=>r.json()).then(s=> { if (!s.running) runButton.disabled = false; });
         }
     }
 
-     // --- Tab Handling Function (from your report HTML) ---
-     // Added forceActivate flag for initialization after dynamic content load
-    function openTab(evt, tabName, forceActivate = false) {
-        var i, tabcontent, tablinks;
-        tabcontent = resultsTabsContainer.getElementsByClassName("tab-content");
-        for (i = 0; i < tabcontent.length; i++) {
-            tabcontent[i].style.display = "none";
-            tabcontent[i].classList.remove("active");
-        }
-        tablinks = resultsTabsContainer.getElementsByClassName("tab-button");
-        for (i = 0; i < tablinks.length; i++) {
-            tablinks[i].classList.remove("active");
-        }
-        var currentTab = document.getElementById(tabName);
-        if (currentTab) {
-             currentTab.style.display = "block";
-             currentTab.classList.add("active");
-        } else {
-             console.warn(`Tab content with ID '${tabName}' not found.`);
-        }
-        // Activate button if event exists, or find button if forced
-        if (evt && evt.currentTarget) {
-             evt.currentTarget.classList.add("active");
-        } else if (forceActivate) {
-             for (i = 0; i < tablinks.length; i++) {
-                  if (tablinks[i].getAttribute('onclick').includes(`'${tabName}'`)) {
-                       tablinks[i].classList.add("active");
-                       break;
-                  }
-             }
-        }
+    // --- Event Listeners (Run, View, Selector) ---
+    // (Keep event listeners from previous version)
+    runForm.addEventListener('submit', async (e) => { /* ... POST /start_backtest, call pollStatus ... */
+         e.preventDefault(); if (runButton.disabled) return;
+         updateStatus('Starting new backtest run...', 'running', true); resultsDisplay.style.display = 'none'; resultsTabsContainer.innerHTML = '';
+         try {
+             const resp = await fetch('/start_backtest', { method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({}) });
+             const respText = await resp.text(); if (!resp.ok) { let err = respText; try {err = JSON.parse(err).error || err;} catch(ex){} throw new Error(`HTTP ${resp.status}: ${err}`); }
+             const startData = JSON.parse(respText); updateStatus(`Run ${startData.run_id} submitted. Processing...`, 'running', true); pollStatus(startData.run_id); loadRuns();
+         } catch (err) { console.error("Error starting backtest:", err); updateStatus(`Error starting backtest: ${err.message}`, 'error', false); }
+    });
+    viewButton.addEventListener('click', () => { const selectedRunId = runSelector.value; fetchAndDisplayResults(selectedRunId); });
+    runSelector.addEventListener('change', () => { viewButton.disabled = !runSelector.value; if (!runSelector.value) { resultsDisplay.style.display = 'none'; } });
+
+
+    // --- Function to Load Past Runs (remains same) ---
+    async function loadRuns() { /* ... fetch /runs, populate runSelector ... */
+         try {
+            const resp = await fetch('/runs'); if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${resp.statusText}`); const runIds = await resp.json();
+            const currentVal = runSelector.value; // Preserve selection if possible
+            runSelector.innerHTML = '<option value="">-- Select a Past Run --</option>';
+            if (runIds && runIds.length > 0) { runIds.forEach(runId => { const option = document.createElement('option'); option.value = runId; option.textContent = runId; if(runId === currentVal) option.selected = true; runSelector.appendChild(option); }); runSelector.disabled = false; }
+            else { runSelector.innerHTML = '<option value="">-- No Past Runs Found --</option>'; runSelector.disabled = true; }
+            viewButton.disabled = !runSelector.value;
+         } catch (err) { console.error("Error loading runs:", err); runSelector.innerHTML = `<option value="">Error loading runs</option>`; runSelector.disabled = true; viewButton.disabled = true; }
     }
 
-    // --- Event Listener for Run Button ---
-    runForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        if (runButton.disabled) return; // Prevent multiple clicks
-
-        updateStatus('Starting new backtest run...', 'running', true);
-        resultsDisplay.style.display = 'none'; // Hide old results
-        resultsTabsContainer.innerHTML = ''; // Clear old tabs
-
-        try {
-            const resp = await fetch('/start_backtest', { method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({}) }); // Send empty body for default run for now
-            const respText = await resp.text();
-            if (!resp.ok) { let err = respText; try {err = JSON.parse(err).error || err;} catch(ex){} throw new Error(`HTTP ${resp.status}: ${err}`); }
-            const startData = JSON.parse(respText);
-
-            updateStatus(`Run ${startData.run_id} submitted. Processing...`, 'running', true);
-            pollStatus(startData.run_id); // Start polling for status
-            // Optionally update run selector immediately
-            loadRuns();
-
-        } catch (err) {
-            console.error("Error starting backtest:", err);
-            updateStatus(`Error starting backtest: ${err.message}`, 'error', false); // Re-enable button on start error
-        }
-    });
-
-    // --- Event Listener for View Button ---
-    viewButton.addEventListener('click', () => {
-        const selectedRunId = runSelector.value;
-        fetchAndDisplayResults(selectedRunId);
-    });
-
-     // --- Event Listener for Run Selector Change ---
-     runSelector.addEventListener('change', () => {
-         viewButton.disabled = !runSelector.value; // Enable view button only if a run is selected
-         if (!runSelector.value) {
-              resultsDisplay.style.display = 'none'; // Hide results if no run selected
-         }
-     });
-
-
-    // --- Function to Load Past Runs ---
-    async function loadRuns() {
-        try {
-            const resp = await fetch('/runs');
-            if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
-            const runIds = await resp.json();
-
-            runSelector.innerHTML = '<option value="">-- Select a Past Run --</option>'; // Clear existing options
-            if (runIds && runIds.length > 0) {
-                runIds.forEach(runId => {
-                    const option = document.createElement('option');
-                    option.value = runId;
-                    option.textContent = runId;
-                    runSelector.appendChild(option);
-                });
-                runSelector.disabled = false;
-            } else {
-                runSelector.innerHTML = '<option value="">-- No Past Runs Found --</option>';
-                runSelector.disabled = true;
-            }
-            viewButton.disabled = true; // Disable view button initially
-        } catch (err) {
-            console.error("Error loading runs:", err);
-            runSelector.innerHTML = `<option value="">Error loading runs</option>`;
-            runSelector.disabled = true;
-            viewButton.disabled = true;
-        }
-    }
-
-    // --- Initial Load ---
-    updateStatus("Idle. Ready to run backtest or view past results.", 'idle');
-    loadRuns(); // Load runs when the page loads
-    // Check initial status in case server was already running something
-    fetch('/status').then(r => r.json()).then(s => {
-         if (s.running && s.run_id) {
-              pollStatus(s.run_id); // Start polling if already running
-         } else {
-              updateStatus("Idle.", 'idle', false); // Ensure button enabled if not running
-         }
-    });
+    // --- Initial Load (remains same) ---
+    updateStatus("Idle. Ready to run backtest or view past results.", 'idle'); loadRuns(); fetch('/status').then(r=>r.json()).then(s=> { if (s.running && s.run_id) { pollStatus(s.run_id); } else { updateStatus("Idle.", 'idle', false); } });
 
 </script>
 

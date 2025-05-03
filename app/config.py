@@ -76,41 +76,57 @@ class Config:
 
     # --- Simulation Parameters ---
     INITIAL_CAPITAL = float(os.getenv('INITIAL_CAPITAL', 100000))
-    DEFAULT_SL_PCT = float(os.getenv("DEFAULT_SL_PCT", 1.0))
-    DEFAULT_TP_PCT = float(os.getenv("DEFAULT_TP_PCT", 2.0))
+    # --- REMOVE or Comment Out Percentage SL/TP ---
+    # DEFAULT_SL_PCT = float(os.getenv("DEFAULT_SL_PCT", 1.0))
+    # DEFAULT_TP_PCT = float(os.getenv("DEFAULT_TP_PCT", 2.0))
+    # --- ADD ATR Multipliers ---
+    DEFAULT_SL_ATR_MULT = float(os.getenv("DEFAULT_SL_ATR_MULT", 1.5)) # Default: 1.5 * ATR for Stop Loss
+    DEFAULT_TP_ATR_MULT = float(os.getenv("DEFAULT_TP_ATR_MULT", 2.0)) # Default: 2.0 * ATR for Take Profit
+    # DEFAULT_TSL_ATR_MULT = float(os.getenv("DEFAULT_TSL_ATR_MULT", 1.2)) # Add later for Trailing Stops
+
     COMMISSION_PCT = float(os.getenv("COMMISSION_PCT", 0.0)) # Per side
     SLIPPAGE_PCT = float(os.getenv("SLIPPAGE_PCT", 0.0)) # Per side
 
-    # --- Indicator Parameters (Cleaned - names match IndicatorCalculator expectations) ---
-    # You can set defaults here or override them by setting the corresponding
-    # environment variable in your .env file (e.g., INDICATOR_EMA_PERIODS="(9, 21, 50)")
-
+    # --- Indicator Parameters (remain the same) ---
+    # ... (keep all your indicator parameters) ...
     INDICATOR_SMA_PERIODS = get_list_from_env("INDICATOR_SMA_PERIODS", "(10, 20, 50)")
     INDICATOR_EMA_PERIODS = get_list_from_env("INDICATOR_EMA_PERIODS", "(9, 14, 21, 50)")
     INDICATOR_RSI_PERIOD  = int(os.getenv("INDICATOR_RSI_PERIOD", 14))
-    INDICATOR_ATR_PERIOD  = int(os.getenv("INDICATOR_ATR_PERIOD", 14))
+    INDICATOR_ATR_PERIOD  = int(os.getenv("INDICATOR_ATR_PERIOD", 14)) # Ensure this matches ATR calc
     INDICATOR_BBANDS_PERIOD= int(os.getenv("INDICATOR_BBANDS_PERIOD", 20))
     INDICATOR_BBANDS_STDDEV= float(os.getenv("INDICATOR_BBANDS_STDDEV", 2.0))
-    INDICATOR_MACD_PARAMS = get_list_from_env("INDICATOR_MACD_PARAMS", "(12, 26, 9)") # MACD fast, slow, signal
-    INDICATOR_VOL_MA_LEN  = int(os.getenv("INDICATOR_VOL_MA_LEN", 20)) # For SMA on Volume
-
-    # Add other parameters used by your IndicatorCalculator and strategies
-    # Ensure names here are consistent with how they are accessed/used elsewhere
-    INDICATOR_ADX_PERIOD = int(os.getenv("INDICATOR_ADX_PERIOD", 14)) # Matches DMI Length
-    INDICATOR_ADX_SMOOTHING = int(os.getenv("INDICATOR_ADX_SMOOTHING", 14)) # Smoothing for ADX itself
+    INDICATOR_MACD_PARAMS = get_list_from_env("INDICATOR_MACD_PARAMS", "(12, 26, 9)")
+    INDICATOR_VOL_MA_LEN  = int(os.getenv("INDICATOR_VOL_MA_LEN", 20))
+    INDICATOR_ADX_PERIOD = int(os.getenv("INDICATOR_ADX_PERIOD", 14))
+    INDICATOR_ADX_SMOOTHING = int(os.getenv("INDICATOR_ADX_SMOOTHING", 14))
     INDICATOR_STOCH_PERIOD = int(os.getenv("INDICATOR_STOCH_PERIOD", 14))
-    INDICATOR_STOCH_SMOOTHING = int(os.getenv("INDICATOR_STOCH_SMOOTHING", 3)) # For %D line
+    INDICATOR_STOCH_SMOOTHING = int(os.getenv("INDICATOR_STOCH_SMOOTHING", 3))
     INDICATOR_CCI_PERIOD = int(os.getenv("INDICATOR_CCI_PERIOD", 20))
     INDICATOR_SUPERTREND_LENGTH = int(os.getenv("INDICATOR_SUPERTREND_LENGTH", 10))
     INDICATOR_SUPERTREND_MULTIPLIER = float(os.getenv("INDICATOR_SUPERTREND_MULTIPLIER", 3.0))
+    VWAP_ENABLED = os.getenv("VWAP_ENABLED", "False").lower() in ('true', '1', 't', 'yes')
+    VWAP_TYPE = os.getenv("VWAP_TYPE", 'session')
+
+  
+   
+
+
+
+    # Add other parameters used by your IndicatorCalculator and strategies
+    # Ensure names here are consistent with how they are accessed/used elsewhere
+  
     INDICATOR_MACD_FAST= int(os.getenv("INDICATOR_MACD_FAST", 12))
     # --- VWAP Config ---
     # Use .lower() and check against common "true" values for boolean env vars
-    VWAP_ENABLED = os.getenv("VWAP_ENABLED", "False").lower() in ('true', '1', 't', 'yes')
-    VWAP_TYPE = os.getenv("VWAP_TYPE", 'session') # 'session' or 'cumulative'
+   
     EMA_FAST_PERIOD = int(os.getenv("EMA_FAST_PERIOD", 9))
     EMA_SLOW_PERIOD = int(os.getenv("EMA_SLOW_PERIOD", 21))
     RSI_PERIOD = int(os.getenv("RSI_PERIOD", 14))
+    # app/config.py
+# ... other params
+    DEFAULT_SL_ATR_MULT = 1.5 # Example: 1.5 * ATR for Stop Loss
+    DEFAULT_TP_ATR_MULT = 2.0 # Example: 2.0 * ATR for Take Profit
+    DEFAULT_TSL_ATR_MULT = 1.2 # Optional: For trailing stop logic later
 # Create a single instance for the app to use
 config = Config()
 

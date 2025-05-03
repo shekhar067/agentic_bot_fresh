@@ -5,7 +5,7 @@ import time
 
 # Only import SmartConnect if needed, handle potential ImportError
 try:
-    from SmartApi import SmartConnect
+    from SmartApi import SmartConnect # type: ignore
 except ImportError:
     SmartConnect = None  # Define as None if library is not installed
 
