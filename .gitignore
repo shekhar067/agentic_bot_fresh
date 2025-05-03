@@ -1,0 +1,11 @@
+# .gitignore
+.env
+venv/
+env/
+__pycache__/
+*.pyc
+*.log
+runs/
+data/*.log
+*.csv # Optional: Add if you don't want to track data files in Git
+*.html # Optional: Add if you don't want to track reports
