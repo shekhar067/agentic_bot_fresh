@@ -78,9 +78,8 @@
     </div>
 
 </div>
-
 <script>
-    // --- Get DOM Elements ---
+    // --- Get DOM Elements (remains same) ---
     const runForm = document.getElementById('backtestRunForm');
     const runButton = document.getElementById('runButton');
     const loadingIndicator = document.getElementById('loadingIndicator');
@@ -91,50 +90,37 @@
     const resultsRunId = document.getElementById('resultsRunId');
     const resultsTabsContainer = document.getElementById('resultsTabsContainer');
     let currentStatusCheckInterval = null;
-    let currentRunData = null; // Store fetched data globally for tab/select changes
+    let currentRunData = null; // Store fetched data
 
-    // --- Helper Functions ---
-    function updateStatus(message, type = 'idle', isRunning = false) {
-        statusMessage.textContent = message;
-        statusMessage.className = `status-${type}`;
-        runButton.disabled = isRunning;
-        loadingIndicator.style.display = isRunning ? 'inline' : 'none';
-    }
+    // --- Helper Functions (remain same) ---
+    function updateStatus(message, type = 'idle', isRunning = false) { /* ... */ statusMessage.textContent = message; statusMessage.className = `status-${type}`; runButton.disabled = isRunning; loadingIndicator.style.display = isRunning ? 'inline' : 'none'; }
+    function formatNum(v, d = 2, suffix = '', naVal = '-') { /* ... */ return (v != null && typeof v === 'number' && !isNaN(v)) ? v.toFixed(d) + suffix : naVal; }
 
-    function formatNum(v, d = 2, suffix = '', naVal = '-') {
-        return (v != null && typeof v === 'number' && !isNaN(v)) ? v.toFixed(d) + suffix : naVal;
-    }
+    // --- Tab Handling (remains same) ---
+    function openTab(evt, tabName) { /* ... */
+         let i, tabcontent, tablinks; tabcontent = resultsTabsContainer.getElementsByClassName("tab-content"); for (i = 0; i < tabcontent.length; i++) { tabcontent[i].style.display = "none"; tabcontent[i].classList.remove("active"); } tablinks = resultsTabsContainer.getElementsByClassName("tab-button"); for (i = 0; i < tablinks.length; i++) { tablinks[i].classList.remove("active"); } let currentTab = document.getElementById(tabName); if (currentTab) { currentTab.style.display = "block"; currentTab.classList.add("active"); } else { console.warn(`Tab content ID '${tabName}' not found.`); } if (evt && evt.currentTarget) { evt.currentTarget.classList.add("active"); } else { for (i = 0; i < tablinks.length; i++) { if (tablinks[i].getAttribute('onclick') && tablinks[i].getAttribute('onclick').includes(`'${tabName}'`)) { tablinks[i].classList.add("active"); break; } } } }
 
-    // --- Tab Handling ---
-    function openTab(evt, tabName) {
-        let i, tabcontent, tablinks;
-        tabcontent = resultsTabsContainer.getElementsByClassName("tab-content");
-        for (i = 0; i < tabcontent.length; i++) { tabcontent[i].style.display = "none"; tabcontent[i].classList.remove("active"); }
-        tablinks = resultsTabsContainer.getElementsByClassName("tab-button");
-        for (i = 0; i < tablinks.length; i++) { tablinks[i].classList.remove("active"); }
-        let currentTab = document.getElementById(tabName);
-        if (currentTab) { currentTab.style.display = "block"; currentTab.classList.add("active"); }
-        if (evt && evt.currentTarget) { evt.currentTarget.classList.add("active"); }
-    }
-
-    // --- Function to Populate Trade Table ---
-    function populateTradeTable(timeframe, strategyName) {
+    // --- Function to Populate Trade Table (Simplified) ---
+    // No longer needs strategyName, populates the single table in the tab
+    function populateTradeTable(timeframe) {
         const tableBody = document.getElementById(`tradeTableBody_${timeframe}`);
-        if (!tableBody || !currentRunData || !currentRunData.timeframes[timeframe]) {
-            console.error("Could not find table body or data for", timeframe, strategyName);
-            return;
+        // Access trades directly from the agent's results for this timeframe
+        const trades = currentRunData?.timeframes?.[timeframe]?.trades_details || [];
+
+        if (!tableBody || !currentRunData) {
+             console.error("Cannot populate trade table for", timeframe);
+             if(tableBody) tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:red">Error loading trades</td></tr>`;
+             return;
         }
-        const trades = currentRunData.timeframes[timeframe]?.trades?.[strategyName] || [];
-        tableBody.innerHTML = ""; // Clear previous trades
+        tableBody.innerHTML = ""; // Clear previous
 
         if (trades.length > 0) {
             trades.forEach(t => {
                 const row = document.createElement('tr');
-                row.classList.add('details-row'); // Add class for potential styling/hover
+                row.classList.add('details-row');
                 const profitClass = t.PnL_Points == null ? 'neutral' : (t.PnL_Points >= 0 ? 'profit' : 'loss');
-                 // --- Formatting helpers specific to trade data ---
-                const formatDt = (iso) => iso ? new Date(iso).toLocaleString('en-GB') : '-';
-                const posClass = t.Position === 'long' ? 'profit' : (t.Position === 'short' ? 'loss' : 'neutral'); // Use PnL colors for pos
+                const formatDt = (iso) => iso ? new Date(iso).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'medium'}) : '-';
+                const posClass = t.Position === 'long' ? 'profit' : (t.Position === 'short' ? 'loss' : 'neutral');
 
                 row.innerHTML = `
                     <td style="text-align:left;" class="${posClass}">${t.Position || '-'}</td>
@@ -148,85 +134,60 @@
                 tableBody.appendChild(row);
             });
         } else {
-            tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#666">No trades executed for this strategy</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#666">No trades executed by the agent</td></tr>`;
         }
     }
 
-
-    // --- Function to Build UI from JSON Data ---
+    // --- *** UPDATED Function to Build UI from JSON Data *** ---
     function buildResultsUI(data) {
-        currentRunData = data; // Store data globally
-        resultsTabsContainer.innerHTML = ""; // Clear previous UI
+        currentRunData = data; // Store globally
+        resultsTabsContainer.innerHTML = ""; // Clear previous
         resultsRunId.textContent = data.run_id || "N/A";
 
         const timeframes = Object.keys(data.timeframes || {});
-        if (timeframes.length === 0) {
-             resultsTabsContainer.innerHTML = "<p>No timeframe data found in results.</p>"; return;
-        }
+        if (timeframes.length === 0) { resultsTabsContainer.innerHTML = "<p>No timeframe data found.</p>"; return; }
 
         // 1. Create Tab Buttons
         const tabButtonsDiv = document.createElement('div');
         tabButtonsDiv.className = 'tab-buttons';
+        resultsTabsContainer.appendChild(tabButtonsDiv);
         timeframes.forEach((tf, index) => {
             const button = document.createElement('button');
             button.className = `tab-button ${index === 0 ? 'active' : ''}`;
             button.textContent = tf;
-            // Use an arrow function for onclick to correctly pass tf
             button.onclick = (event) => openTab(event, tf);
             tabButtonsDiv.appendChild(button);
         });
-        resultsTabsContainer.appendChild(tabButtonsDiv);
 
         // 2. Create Tab Content Divs
         timeframes.forEach((tf, index) => {
-            const tfData = data.timeframes[tf];
+            const agentSummary = data.timeframes[tf]; // This IS the agent's result dict
             const tabContentDiv = document.createElement('div');
             tabContentDiv.id = tf;
+            const winRateVal = agentSummary.win_rate;
             tabContentDiv.className = `tab-content ${index === 0 ? 'active' : ''}`;
 
             let contentHTML = `<h2>Results for Timeframe: ${tf}</h2>`;
 
-            // --- Metrics Section ---
-            if (tfData && tfData.metrics && Object.keys(tfData.metrics).length > 0) {
-                contentHTML += `<h3>Performance Summary</h3><div class="summary-card">`;
-                // Create metrics table (can improve formatting)
-                contentHTML += `<table class="performance-table"><thead><tr><th>Strategy</th><th>Total PnL</th><th>Trades</th><th>Win Rate</th></tr></thead><tbody>`;
-                for (const [stratName, metrics] of Object.entries(tfData.metrics)) {
-                    const pnlClass = metrics.total_pnl == null ? 'neutral' : (metrics.total_pnl >= 0 ? 'profit' : 'loss');
-                    contentHTML += `<tr>
-                        <td style="text-align:left;">${stratName}</td>
-                        <td class="${pnlClass}">${formatNum(metrics.total_pnl)}</td>
-                        <td>${metrics.trade_count ?? '-'}</td>
-                        <td>${formatNum(metrics.win_rate, 2, '%')}</td>
-                    </tr>`;
-                }
-                contentHTML += `</tbody></table></div>`;
-            } else if (tfData && tfData.error){
-                 contentHTML += `<p style="color:red">Error loading metrics: ${tfData.error}</p>`;
-            } else {
-                 contentHTML += `<p>No summary metrics available.</p>`;
-            }
+            if (agentSummary && agentSummary.error){
+                 contentHTML += `<p style="color:red">Error loading results: ${agentSummary.error}</p>`;
+            } else if (agentSummary) { // Check if agentSummary exists and is not error
+                // --- Metrics Section ---
+                contentHTML += `<h3>Performance Summary (Agent)</h3><div class="summary-card">`;
+                const pnlVal = agentSummary.total_pnl; // Access directly
+                const winRateVal = agentSummary.win_rate;
+                const tradesVal = agentSummary.trade_count;
+                const pnlClass = pnlVal == null ? 'neutral' : (pnlVal >= 0 ? 'profit' : 'loss');
+                contentHTML += `<p><strong>Total PnL (Points):</strong> <span class='${pnlClass}'>${formatNum(pnlVal)}</span></p>`;
+                contentHTML += `<p><strong>Total Trades:</strong> ${tradesVal ?? '-'}</p>`;
+                contentHTML += `<p><strong>Win Rate:</strong> ${formatNum(winRateVal, 2, '%')}</p>`;
+                // Add other metrics here if they exist in agentSummary
+                contentHTML += `</div>`;
 
-             // --- Trade Details Section ---
-            contentHTML += `<h3>Trade Details</h3>`;
-            if (tfData && tfData.trades && Object.keys(tfData.trades).length > 0) {
-                // Strategy Selector Dropdown
-                contentHTML += `<div class="control-group"><label for="strategySelect_${tf}">Select Strategy:</label>
-                                <select id="strategySelect_${tf}">`;
-                const strategiesWithTrades = Object.entries(tfData.trades)
-                                                .filter(([_, trades]) => trades && trades.length > 0)
-                                                .map(([name, _]) => name);
-
-                if(strategiesWithTrades.length > 0) {
-                    strategiesWithTrades.forEach(stratName => {
-                         contentHTML += `<option value="${stratName}">${stratName}</option>`;
-                    });
-                } else {
-                     contentHTML += `<option value="">-- No Strategies with Trades --</option>`;
-                }
-                contentHTML += `</select></div>`;
-
-                // Trade Table Container
+                // --- Trade Details Section ---
+                contentHTML += `<h3>Trade Details (Agent)</h3>`;
+                const trades = agentSummary.trades_details || []; // Access directly
+                // REMOVED Strategy Selector Dropdown
                 contentHTML += `<div class="trade-table-container">
                     <table class="performance-table trade-details">
                          <thead><tr>
@@ -235,106 +196,85 @@
                              <th>PnL (Points)</th>
                           </tr></thead>
                          <tbody id="tradeTableBody_${tf}">
-                            <tr><td colspan="7" style="text-align:center;color:#666">Select a strategy to view trades</td></tr>
-                         </tbody>
+                            </tbody>
                     </table>
                 </div>`;
-            } else if (tfData && !tfData.error){ // Only show message if no error loading metrics
-                contentHTML += `<p>No trade details available for any strategy.</p>`;
-            }
-            // Error message for trades handled by overall timeframe error check
+            } else {
+                 contentHTML += `<p>No data available for this timeframe.</p>`;
+            } // End check for agentSummary content
 
             tabContentDiv.innerHTML = contentHTML;
             resultsTabsContainer.appendChild(tabContentDiv);
 
-             // Add event listener AFTER element exists in DOM
-            const strategySelector = document.getElementById(`strategySelect_${tf}`);
-            if (strategySelector) {
-                strategySelector.onchange = () => {
-                     populateTradeTable(tf, strategySelector.value);
-                };
-                // Initially populate table for the first strategy in the dropdown
-                if (strategySelector.options.length > 0 && strategySelector.value) {
-                     // Use setTimeout to ensure rendering is complete
-                     setTimeout(() => populateTradeTable(tf, strategySelector.value), 0);
-                }
-            }
+            // Populate the trade table for this tab AFTER adding content to DOM
+             if (agentSummary && !agentSummary.error) {
+                 setTimeout(() => populateTradeTable(tf), 0); // Populate trade table
+             }
 
         }); // End timeframe loop
 
-        resultsDisplay.style.display = 'block'; // Show results area
-         // Ensure first tab content is displayed if needed (sometimes CSS handles this)
+        resultsDisplay.style.display = 'block';
+        // Ensure first tab content is displayed
         const firstActiveTab = resultsTabsContainer.querySelector('.tab-content.active');
         if(firstActiveTab) firstActiveTab.style.display = 'block';
 
     } // End buildResultsUI
 
 
-    // --- Function to Fetch and Display Results ---
+    // --- fetchAndDisplayResults (remains same, calls buildResultsUI) ---
     async function fetchAndDisplayResults(runId) {
-        if (!runId) {
-            resultsDisplay.style.display = 'none';
-            return;
-        }
+        if (!runId) { resultsDisplay.style.display = 'none'; return; }
         updateStatus(`Workspaceing results for run ${runId}...`, 'running', runButton.disabled);
         resultsTabsContainer.innerHTML = '<p>Loading results...</p>';
         resultsDisplay.style.display = 'block';
-
-
+       
         try {
             const resp = await fetch(`/results/${runId}`);
-            if (!resp.ok) { /* ... error handling ... */
-                 let errorMsg = `HTTP ${resp.status}: ${resp.statusText}`; try { const errJson = await resp.json(); errorMsg = errJson.error || errorMsg; } catch(e){} throw new Error(errorMsg);
-            }
-            const resultsData = await resp.json(); // This is the structured JSON
-
+            if (!resp.ok) { let errorMsg = `HTTP ${resp.status}: ${resp.statusText}`; try { const errJson = await resp.json(); errorMsg = errJson.error || errorMsg; } catch(e){} throw new Error(errorMsg); }
+            const resultsData = await resp.json();
             if (resultsData.error) throw new Error(resultsData.error);
             if (!resultsData.timeframes) throw new Error("No timeframe data found in response.");
+            buildResultsUI(resultsData); // Build the UI dynamically
+            if (!statusMessage.className.includes('error')) { updateStatus(`Results loaded for run ${runId}.`, 'success'); }
+           } 
+        // Inside the fetchAndDisplayResults function in index.html <script> tag
 
-            buildResultsUI(resultsData); // Call function to build UI from JSON
-
-            if (!statusMessage.className.includes('error')) { // Update status if no prior error
-                 updateStatus(`Results loaded for run ${runId}.`, 'success');
-            }
-
-        } catch (err) { /* ... error handling ... */
-             console.error(`Error fetching results for ${runId}:`, err); resultsTabsContainer.innerHTML = `<p style="color:red;">Error loading results: ${err.message}</p>`; updateStatus(`Error loading results for ${runId}.`, 'error');
-        } finally { /* ... re-enable button logic ... */
-             fetch('/status').then(r=>r.json()).then(s=> { if (!s.running) runButton.disabled = false; });
+        
+        catch (err) { // <--- Start of catch block
+            console.error(`Error fetching results for ${runId}:`, err); // Log the actual error object
+            resultsTabsContainer.innerHTML = `<p style="color:red;">Error loading results: ${err.message}</p>`; // Display error message from err object
+            // Use err.message, DO NOT use resp here
+            updateStatus(`Error loading results for ${runId}: ${err.message}`, 'error');
+        } finally { // <--- Start of finally block
+             // This part is okay, it fetches status independently
+             fetch('/status').then(r=>r.json()).then(s=> {
+                 if (!s.running) runButton.disabled = false;
+             });
         }
+    } // <--- End of fetchAndDisplayResults function
+    
+
+    // --- pollStatus (remains same) ---
+    function pollStatus(runId) { /* ... */
+        if (currentStatusCheckInterval) { clearInterval(currentStatusCheckInterval); } updateStatus(`Checking status for run ${runId}...`, 'running', true);
+        currentStatusCheckInterval = setInterval(async () => { try { const resp = await fetch('/status'); if (!resp.ok) { clearInterval(currentStatusCheckInterval); updateStatus(`Error checking status: ${resp.statusText}`, 'error'); return; } const statusData = await resp.json(); if (statusData.run_id === runId) { if (statusData.running) { updateStatus(statusData.message || `Running run ${runId}...`, 'running', true); } else { clearInterval(currentStatusCheckInterval); if (statusData.error) { updateStatus(`Run ${runId} failed: ${statusData.error}`, 'error'); } else { updateStatus(`Run ${runId} complete. Fetching results...`, 'success'); fetchAndDisplayResults(runId); } } } else if (!statusData.running) { clearInterval(currentStatusCheckInterval); if (statusMessage.textContent.includes(runId) && statusMessage.className.includes('running')) { updateStatus(`Run ${runId} status unknown or completed earlier.`, 'idle'); } } } catch (err) { console.error("Error polling status:", err); clearInterval(currentStatusCheckInterval); updateStatus(`Error polling status: ${err.message}`, 'error'); } }, 3000);
     }
 
-    // --- Event Listeners (Run, View, Selector) ---
-    // (Keep event listeners from previous version)
-    runForm.addEventListener('submit', async (e) => { /* ... POST /start_backtest, call pollStatus ... */
-         e.preventDefault(); if (runButton.disabled) return;
-         updateStatus('Starting new backtest run...', 'running', true); resultsDisplay.style.display = 'none'; resultsTabsContainer.innerHTML = '';
-         try {
-             const resp = await fetch('/start_backtest', { method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({}) });
-             const respText = await resp.text(); if (!resp.ok) { let err = respText; try {err = JSON.parse(err).error || err;} catch(ex){} throw new Error(`HTTP ${resp.status}: ${err}`); }
-             const startData = JSON.parse(respText); updateStatus(`Run ${startData.run_id} submitted. Processing...`, 'running', true); pollStatus(startData.run_id); loadRuns();
-         } catch (err) { console.error("Error starting backtest:", err); updateStatus(`Error starting backtest: ${err.message}`, 'error', false); }
+    // --- Event Listeners (remain same) ---
+    runForm.addEventListener('submit', async (e) => { /* ... */
+         e.preventDefault(); if (runButton.disabled) return; updateStatus('Starting new backtest run...', 'running', true); resultsDisplay.style.display = 'none'; resultsTabsContainer.innerHTML = ''; try { const resp = await fetch('/start_backtest', { method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({}) }); const respText = await resp.text(); if (!resp.ok) { let err = respText; try {err = JSON.parse(err).error || err;} catch(ex){} throw new Error(`HTTP ${resp.status}: ${err}`); } const startData = JSON.parse(respText); updateStatus(`Run ${startData.run_id} submitted. Processing...`, 'running', true); pollStatus(startData.run_id); loadRuns(); } catch (err) { console.error("Error starting backtest:", err); updateStatus(`Error starting backtest: ${err.message}`, 'error', false); }
     });
     viewButton.addEventListener('click', () => { const selectedRunId = runSelector.value; fetchAndDisplayResults(selectedRunId); });
     runSelector.addEventListener('change', () => { viewButton.disabled = !runSelector.value; if (!runSelector.value) { resultsDisplay.style.display = 'none'; } });
 
-
-    // --- Function to Load Past Runs (remains same) ---
-    async function loadRuns() { /* ... fetch /runs, populate runSelector ... */
-         try {
-            const resp = await fetch('/runs'); if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${resp.statusText}`); const runIds = await resp.json();
-            const currentVal = runSelector.value; // Preserve selection if possible
-            runSelector.innerHTML = '<option value="">-- Select a Past Run --</option>';
-            if (runIds && runIds.length > 0) { runIds.forEach(runId => { const option = document.createElement('option'); option.value = runId; option.textContent = runId; if(runId === currentVal) option.selected = true; runSelector.appendChild(option); }); runSelector.disabled = false; }
-            else { runSelector.innerHTML = '<option value="">-- No Past Runs Found --</option>'; runSelector.disabled = true; }
-            viewButton.disabled = !runSelector.value;
-         } catch (err) { console.error("Error loading runs:", err); runSelector.innerHTML = `<option value="">Error loading runs</option>`; runSelector.disabled = true; viewButton.disabled = true; }
+    // --- Load Past Runs (remains same) ---
+    async function loadRuns() { /* ... */
+         try { const resp = await fetch('/runs'); if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${resp.statusText}`); const runIds = await resp.json(); const currentVal = runSelector.value; runSelector.innerHTML = '<option value="">-- Select a Past Run --</option>'; if (runIds && runIds.length > 0) { runIds.forEach(runId => { const option = document.createElement('option'); option.value = runId; option.textContent = runId; if(runId === currentVal) option.selected = true; runSelector.appendChild(option); }); runSelector.disabled = false; } else { runSelector.innerHTML = '<option value="">-- No Past Runs Found --</option>'; runSelector.disabled = true; } viewButton.disabled = !runSelector.value; } catch (err) { console.error("Error loading runs:", err); runSelector.innerHTML = `<option value="">Error loading runs</option>`; runSelector.disabled = true; viewButton.disabled = true; }
     }
 
     // --- Initial Load (remains same) ---
     updateStatus("Idle. Ready to run backtest or view past results.", 'idle'); loadRuns(); fetch('/status').then(r=>r.json()).then(s=> { if (s.running && s.run_id) { pollStatus(s.run_id); } else { updateStatus("Idle.", 'idle', false); } });
 
 </script>
-
 </body>
 </html>

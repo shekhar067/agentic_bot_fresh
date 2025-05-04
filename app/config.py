@@ -102,10 +102,20 @@ class Config:
     INDICATOR_STOCH_PERIOD = int(os.getenv("INDICATOR_STOCH_PERIOD", 14))
     INDICATOR_STOCH_SMOOTHING = int(os.getenv("INDICATOR_STOCH_SMOOTHING", 3))
     INDICATOR_CCI_PERIOD = int(os.getenv("INDICATOR_CCI_PERIOD", 20))
+    INDICATOR_ADX_PERIOD = int(os.getenv("INDICATOR_ADX_PERIOD", 14)) # Also used for DMI +/- length
+  
     INDICATOR_SUPERTREND_LENGTH = int(os.getenv("INDICATOR_SUPERTREND_LENGTH", 10))
     INDICATOR_SUPERTREND_MULTIPLIER = float(os.getenv("INDICATOR_SUPERTREND_MULTIPLIER", 3.0))
     VWAP_ENABLED = os.getenv("VWAP_ENABLED", "False").lower() in ('true', '1', 't', 'yes')
     VWAP_TYPE = os.getenv("VWAP_TYPE", 'session')
+    # --- Regime Detection Parameters (NEW SECTION) ---
+    REGIME_ADX_PERIOD = INDICATOR_ADX_PERIOD # Use same period as ADX indicator by default
+    REGIME_ADX_THRESHOLD_TREND = int(os.getenv("REGIME_ADX_THRESHOLD_TREND", 25))
+    REGIME_ADX_THRESHOLD_RANGE = int(os.getenv("REGIME_ADX_THRESHOLD_RANGE", 20))
+    # Optional: Add ATR or BBW thresholds if needed for more complex rules later
+    REGIME_ATR_MA_PERIOD = 20
+    REGIME_ATR_VOL_HIGH_MULT = 1.2 # e.g., ATR > 1.2 * SMA(ATR)
+    REGIME_ATR_VOL_LOW_MULT = 0.8  # e.g., ATR < 0.8 * SMA(ATR)   
 
   
    
