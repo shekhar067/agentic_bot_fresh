@@ -1,81 +1,194 @@
-# app/reporting.py
-
 import pandas as pd
 import numpy as np
 import logging
-from typing import Dict, Optional, Any
+from pathlib import Path
+from datetime import datetime
+import matplotlib.pyplot as plt
+from typing import Dict, Optional, List, Any, Tuple
+import io
+import base64
 
-logger = logging.getLogger(__name__) # Get logger instance
+# Ensure matplotlib uses a non-interactive backend
+import matplotlib
+matplotlib.use('Agg')
 
-# Helper function for formatting numbers in HTML
+logger = logging.getLogger(__name__)
+if not logger.hasHandlers():
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
 def formatNum(value, decimals=2, suffix='', na_value='-'):
-     """Formats a number for HTML display."""
-     if value is None or pd.isna(value) or not isinstance(value, (int, float)): return na_value
-     try: return f"{value:.{decimals}f}{suffix}"
-     except: return na_value # Fallback
+    if value is None or pd.isna(value) or not isinstance(value, (int, float)):
+        return na_value
+    try:
+        return f"{value:,.{decimals}f}{suffix}"
+    except (ValueError, TypeError):
+        return na_value
+
+def _plot_to_base64(fig: plt.Figure) -> Optional[str]:
+    try:
+        buf = io.BytesIO()
+        fig.savefig(buf, format='png', dpi=90, bbox_inches='tight')
+        buf.seek(0)
+        image_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+        buf.close()
+        plt.close(fig)
+        return f"data:image/png;base64,{image_base64}"
+    except Exception as e:
+        logger.error(f"Failed to convert plot to base64: {e}", exc_info=True)
+        plt.close(fig)
+        return None
+
+# def calculate_detailed_metrics(trades_list: List[Dict], timeframe: str = "Unknown") -> Optional[Dict]:
+#     if not trades_list:
+#         return {
+#             'total_trades': 0, 'win_rate': 0, 'total_pnl_points': 0,
+#             'avg_win_points': 0, 'avg_loss_points': 0, 'profit_factor': 1.0,
+#             'max_drawdown_points': 0, 'expectancy_points': 0,
+#             'sharpe_ratio_points': 0
+#         }
+
+#     try:
+#         trades_df = pd.DataFrame(trades_list)
+#         if 'PnL_Points' not in trades_df.columns or 'ExitTime' not in trades_df.columns:
+#             logger.error(f"[{timeframe}] Trades list missing PnL_Points or ExitTime.")
+#             return None
+
+#         trades_df['PnL_Points'] = pd.to_numeric(trades_df['PnL_Points'], errors='coerce')
+#         trades_df['ExitTime'] = pd.to_datetime(trades_df['ExitTime'], errors='coerce')
+#         trades_df = trades_df.dropna(subset=['PnL_Points', 'ExitTime']).sort_values('ExitTime')
+
+#         if trades_df.empty: return {'total_trades': 0}
+
+#         pnl_points = trades_df['PnL_Points']
+#         wins = pnl_points[pnl_points > 0]
+#         losses = pnl_points[pnl_points <= 0]
+#         total_trades = len(trades_df)
+
+#         equity_curve_points = pnl_points.cumsum()
+#         peak = equity_curve_points.cummax()
+#         drawdown = peak - equity_curve_points
+#         max_drawdown_points = drawdown.max() if not drawdown.empty else 0
+
+#         total_wins = wins.sum()
+#         total_losses = abs(losses.sum())
+#         profit_factor = total_wins / total_losses if total_losses > 0 else np.inf if total_wins > 0 else 1.0
+
+#         pnl_std_dev = pnl_points.std()
+#         sharpe_ratio_points = (pnl_points.mean() / pnl_std_dev) if pnl_std_dev > 0 else 0
+
+#         return {
+#             'total_trades': total_trades,
+#             'win_rate': (len(wins) / total_trades * 100) if total_trades > 0 else 0,
+#             'avg_win_points': wins.mean() if not wins.empty else 0,
+#             'avg_loss_points': losses.mean() if not losses.empty else 0,
+#             'total_pnl_points': pnl_points.sum(),
+#             'profit_factor': profit_factor,
+#             'max_drawdown_points': max_drawdown_points,
+#             'expectancy_points': pnl_points.mean() if total_trades > 0 else 0,
+#             'sharpe_ratio_points': sharpe_ratio_points
+#         }
+
+#     except Exception as e:
+#         logger.error(f"[{timeframe}] Error calculating detailed metrics: {e}", exc_info=True)
+#         return None
 
 def generate_agent_html_report(all_results: Dict[str, Optional[Dict]]) -> str:
-     """Generates HTML report for the single agent across timeframes."""
-     logger.info("Generating agent HTML report content...")
-     html_content = ""
-     timeframes = sorted(list(all_results.keys()), key=lambda x: (int(x[:-3]) if x[:-3].isdigit() else 999, x[-3:])) # Sort timeframes numerically
-     if not timeframes: return "<p>No results data available for report.</p>"
+    logger.info("Generating full agent HTML report content...")
 
-     # --- Tab Buttons ---
-     html_content += "<div class='tab-buttons'>"
-     for i, tf in enumerate(timeframes):
-         active_class = 'active' if i == 0 else ''; tf_id = str(tf).replace(' ','_') # Make ID html safe
-         html_content += f'<button class="tab-button {active_class}" onclick="openTab(event, \'{tf_id}\')">{tf}</button>'
-     html_content += "</div>"
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Agent Backtest Report</title>
+  <link rel="stylesheet" href="/static/report.css">
+  <script src="/static/report.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>Agent Backtest Report</h1>
+    <p class="timestamp">Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+    <div class="tab-buttons">
+"""
 
-     # --- Tab Content ---
-     for i, tf in enumerate(timeframes):
-         tf_id = str(tf).replace(' ','_'); active_class = 'active' if i == 0 else ''
-         html_content += f'<div id="{tf_id}" class="tab-content {active_class}">\n<h2>Results for Timeframe: {tf}</h2>\n'
-         agent_summary = all_results.get(tf)
+    # 1. Tab Buttons
+    for i, tf in enumerate(all_results):
+        html += f'<button class="tab-button{" active" if i == 0 else ""}" data-tab="tab_{tf}">{tf}</button>'
 
-         if agent_summary is None or agent_summary.get("error"):
-              error_msg = agent_summary.get("error", "Unknown error") if agent_summary else "Unknown error."
-              html_content += f"<p style='color:red;'>Error loading results: {error_msg}</p>"
-              html_content += "</div>\n"; continue
+    html += "</div> <!-- end tab-buttons -->\n"
 
-         # --- Performance Summary Card ---
-         html_content += "<h3>Performance Summary (Agent)</h3><div class=\"summary-card\">"
-         pnl_val = agent_summary.get('total_pnl'); win_rate_val = agent_summary.get('win_rate'); trades_val = agent_summary.get('trade_count')
-         pnl_str = formatNum(pnl_val); pnl_class = 'neutral' if pnl_val is None else ('profit' if pnl_val >= 0 else 'loss')
-         html_content += f"<p><strong>Total PnL (Points):</strong> <span class='{pnl_class}'>{pnl_str}</span></p>"
-         html_content += f"<p><strong>Total Trades:</strong> {trades_val if trades_val is not None else '-'}</p>"
-         html_content += f"<p><strong>Win Rate:</strong> {formatNum(win_rate_val, 2, '%')}</p>"
-         html_content += '</div>'
+    # 2. Tab Contents
+    for i, (tf, result) in enumerate(all_results.items()):
+        tab_id = f"tab_{tf}"
+        html += f'<div id="{tab_id}" class="tab-content{" active" if i == 0 else ""}">\n'
+        html += f"<h3>Timeframe: {tf}</h3>\n"
 
-         # --- Trade Details Table ---
-         html_content += "<h3>Trade Details (Agent)</h3>"
-         trades = agent_summary.get('trades_details', [])
-         if trades:
-             html_content += "<div class=\"trade-table-container\">"
-             try:
-                 trades_df = pd.DataFrame(trades)
-                 # Select and order columns
-                 display_cols = ['Position', 'EntryTime', 'EntryPrice', 'ExitTime', 'ExitPrice', 'ExitReason', 'StrategyName', 'PnL_Points']
-                 existing_display_cols = [col for col in display_cols if col in trades_df.columns]
-                 trades_df_display = trades_df[existing_display_cols].copy()
-                 # Formatting
-                 for col in ['EntryPrice', 'ExitPrice', 'PnL_Points']:
-                      if col in trades_df_display: trades_df_display[col] = trades_df_display[col].apply(lambda x: formatNum(x) if pd.notna(x) else '-')
-                 trades_df_display.rename(columns={'PnL_Points': 'PnL (Points)', 'StrategyName': 'Strategy'}, inplace=True)
-                 # Convert to HTML
-                 html_content += trades_df_display.to_html(classes='performance-table trade-details', border=1, index=False, justify='right')
-             except Exception as table_e: logger.error(f"Error generating HTML table for {tf}: {table_e}"); html_content += "<p>Error displaying trades.</p>"
-             html_content += "</div>"
-         else: html_content += "<p>No trades executed.</p>"
-         html_content += "</div>\n" # Close tab-content div
+        if not result or "error" in result:
+            html += f"<p style='color:red;'>Error: {result.get('error', 'No data')}</p>\n"
+        else:
+            trades = result.get("trades_details") or result.get("trades") or []
+            metrics = calculate_detailed_metrics(trades, tf)
+            #metrics = calculate_detailed_metrics(result.get("trades_details", []), tf)
+            if not metrics:
+                html += "<p>No metrics available.</p>"
+            else:
+                html += "<ul>\n"
+                for key, val in metrics.items():
+                    html += f"<li><b>{key.replace('_', ' ').title()}</b>: {formatNum(val)}</li>\n"
+                html += "</ul>\n"
 
-     # --- JavaScript for Tabs ---
-     html_script = """
-     <script>
-          function openTab(evt, tabName) { /* ... (keep JS as before) ... */ var i, tc, tl; tc=document.getElementsByClassName("tab-content"); for(i=0;i<tc.length;i++){tc[i].style.display="none"; tc[i].classList.remove("active");} tl=document.getElementsByClassName("tab-button"); for(i=0;i<tl.length;i++){tl[i].classList.remove("active");} var ct=document.getElementById(tabName); if(ct){ct.style.display="block"; ct.classList.add("active");} if(evt && evt.currentTarget){evt.currentTarget.classList.add("active");} else { for(i=0;i<tl.length;i++){ if(tl[i].getAttribute('onclick') && tl[i].getAttribute('onclick').includes("'" + tabName + "'")){ tl[i].classList.add("active"); break;}}} }
-          // Initial tab activation might need adjustment if IDs changed
-          // document.addEventListener('DOMContentLoaded', function() { /* ... */ }); // Keep initial activation
-     </script>
-     """
-     return html_content + html_script
+        html += "</div> <!-- end tab-content -->\n"
+
+    html += """
+  </div> <!-- end container -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const buttons = document.querySelectorAll('.tab-button');
+      const contents = document.querySelectorAll('.tab-content');
+      buttons.forEach(btn => {
+        btn.addEventListener('click', function () {
+          buttons.forEach(b => b.classList.remove('active'));
+          contents.forEach(c => c.classList.remove('active'));
+          btn.classList.add('active');
+          const tabId = btn.getAttribute('data-tab');
+          document.getElementById(tabId).classList.add('active');
+        });
+      });
+    });
+  </script>
+</body>
+</html>
+"""
+    return html
+
+def calculate_detailed_metrics(trades_list: List[Dict], timeframe: str = "Unknown") -> Dict:
+    if not trades_list:
+        return { 'total_trades': 0, 'win_rate': 0, 'total_pnl_points': 0, 'avg_win_points': 0,
+                 'avg_loss_points': 0, 'profit_factor': 1.0, 'max_drawdown_points': 0,
+                 'expectancy_points': 0, 'sharpe_ratio_points': 0 }
+    try:
+        trades_df = pd.DataFrame(trades_list)
+        trades_df['PnL_Points'] = pd.to_numeric(trades_df['PnL_Points'], errors='coerce')
+        trades_df['ExitTime'] = pd.to_datetime(trades_df['ExitTime'], errors='coerce')
+        trades_df.dropna(subset=['PnL_Points', 'ExitTime'], inplace=True)
+        if trades_df.empty: return { 'total_trades': 0 }
+
+        pnl = trades_df['PnL_Points']
+        wins, losses = pnl[pnl > 0], pnl[pnl <= 0]
+        equity = pnl.cumsum()
+        drawdown = equity.cummax() - equity
+        return {
+            'total_trades': len(pnl),
+            'win_rate': len(wins) / len(pnl) * 100 if len(pnl) else 0,
+            'avg_win_points': wins.mean() if not wins.empty else 0,
+            'avg_loss_points': losses.mean() if not losses.empty else 0,
+            'total_pnl_points': pnl.sum(),
+            'profit_factor': wins.sum() / abs(losses.sum()) if losses.sum() else 1,
+            'max_drawdown_points': drawdown.max(),
+            'expectancy_points': pnl.mean(),
+            'sharpe_ratio_points': pnl.mean() / pnl.std() if pnl.std() > 0 else 0
+        }
+    except Exception as e:
+        logger.error(f"[{timeframe}] Error in metrics: {e}")
+        return {}
+
+

@@ -116,7 +116,8 @@ class Config:
     REGIME_ATR_MA_PERIOD = 20
     REGIME_ATR_VOL_HIGH_MULT = 1.2 # e.g., ATR > 1.2 * SMA(ATR)
     REGIME_ATR_VOL_LOW_MULT = 0.8  # e.g., ATR < 0.8 * SMA(ATR)   
-
+    SUPERTREND_PERIOD = int(os.getenv("SUPERTREND_PERIOD", 10))
+    SUPERTREND_MULTIPLIER = float(os.getenv("SUPERTREND_MULTIPLIER", 3.0))
   
    
 

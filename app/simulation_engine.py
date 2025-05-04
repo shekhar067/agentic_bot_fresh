@@ -258,7 +258,14 @@ class SimpleBacktester:
                                       entry_signal = 'buy'; confirmed_strategy_name = selected_strategy_name; self.sim_logger.debug("  -> Confirmed: RSI Buy")
                              # else: self.sim_logger.debug("  RSI Buy Check Failed (NaN values)")
                          # else: self.sim_logger.debug("  RSI Buy Check Failed (Missing columns)")
-                    # Add elif for other strategies here...
+                    elif selected_strategy_name == "SuperTrend_ADX":
+                        st_col = f'SUPERTd_{config.INDICATOR_SUPERTREND_LENGTH}_{config.INDICATOR_SUPERTREND_MULTIPLIER}'
+                        adx_col = f'ADX_{config.INDICATOR_ADX_PERIOD}'
+                        if st_col in current_row.index and adx_col in current_row.index:
+                            if current_row[st_col] == 1 and current_row[adx_col] >= 20:
+                                entry_signal = 'buy'
+                                confirmed_strategy_name = selected_strategy_name
+                                self.sim_logger.debug("  -> Confirmed: SuperTrend BUY")
 
                 elif agent_potential_signal == 'sell_potential':
                      self.sim_logger.debug(f"ENTRY CHECK: Potential Sell. Confirming strategy: '{selected_strategy_name}'")
@@ -278,8 +285,14 @@ class SimpleBacktester:
                                    self.sim_logger.debug(f"  Confirming RSI Sell: Cur={c_rsi:.2f}<{rsi_overbought}?({c_rsi<rsi_overbought}), Prev={p_rsi:.2f}>={rsi_overbought}?({p_rsi>=rsi_overbought})")
                                    if c_rsi < rsi_overbought and p_rsi >= rsi_overbought:
                                        entry_signal = 'sell'; confirmed_strategy_name = selected_strategy_name; self.sim_logger.debug("  -> Confirmed: RSI Sell")
-                     # Add elif for other strategies...
-
+                     elif selected_strategy_name == "SuperTrend_ADX":
+                        st_col = f'SUPERTd_{config.INDICATOR_SUPERTREND_LENGTH}_{config.INDICATOR_SUPERTREND_MULTIPLIER}'
+                        adx_col = f'ADX_{config.INDICATOR_ADX_PERIOD}'
+                        if st_col in current_row.index and adx_col in current_row.index:
+                            if current_row[st_col] == 1 and current_row[adx_col] >= 20:
+                                entry_signal = 'buy'
+                                confirmed_strategy_name = selected_strategy_name
+                                self.sim_logger.debug("  -> Confirmed: SuperTrend BUY")
 
                 # --- Process Confirmed Entry ---
                 if entry_signal:

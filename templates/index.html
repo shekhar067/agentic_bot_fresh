@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Trading Bot Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='report.css') }}">
+  <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      margin: 0;
+      background: #f7f9fc;
+      color: #333;
+      font-size: 14px;
+    }
+
+    .container {
+      max-width: 95%;
+      margin: 30px auto;
+      padding: 25px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    h2,
+    h4 {
+      color: #34495e;
+    }
+
+    select,
+    button {
+      padding: 8px 12px;
+      font-size: 14px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      background: #2ecc71;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    button:hover {
+      background: #27ae60;
+    }
+
+    button:disabled {
+      background: #bdc3c7;
+      cursor: not-allowed;
+    }
+
+    .section {
+      margin-bottom: 20px;
+    }
+
+    .run-controls,
+    .view-controls {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+
+    #status-message {
+      padding: 10px;
+      margin: 15px 0;
+      font-weight: bold;
+      border-radius: 5px;
+    }
+
+    .status-running {
+      background: #fffbe6;
+      border: 1px solid #ffe58f;
+      color: #d46b08;
+    }
+
+    .status-success {
+      background: #f6ffed;
+      border: 1px solid #b7eb8f;
+      color: #389e0d;
+    }
+
+    .status-error {
+      background: #fff1f0;
+      border: 1px solid #ffa39e;
+      color: #cf1322;
+    }
+
+    .status-idle {
+      background: #fafafa;
+      border: 1px solid #d9d9d9;
+      color: #595959;
+    }
+
+    .tab-buttons {
+      margin-top: 20px;
+    }
+
+    .tab-button {
+      padding: 8px 14px;
+      margin-right: 10px;
+      border: none;
+      background-color: #eee;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    .tab-button.active {
+      background-color: #2ecc71;
+      color: white;
+    }
+
+    .tab-content {
+      display: none;
+      margin-top: 20px;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+
+    th,
+    td {
+      border: 1px solid #ccc;
+      padding: 6px 10px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f2f2f2;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      border: 1px solid #ddd;
+      padding: 8px 12px;
+      text-align: center;
+    }
+
+    th {
+      background-color: #f3f4f6;
+      font-weight: 600;
+      color: #2c3e50;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+
+    tr:hover {
+      background-color: #f1f1f1;
+    }
+
+    .table-container {
+      max-height: 20em;
+      overflow-x: auto;
+      max-width: 100%;
+    }
+
+    .table-container::-webkit-scrollbar {
+      height: 8px;
+    }
+
+    .table-container::-webkit-scrollbar-thumb {
+      background: #ccc;
+      border-radius: 4px;
+    }
+
+    .table-container::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h2>Trading Bot Backtester</h2>
+
+    <div class="section">
+      <h4>Run New Backtest</h4>
+      <form id="backtestRunForm">
+        <div class="run-controls">
+          <button type="submit" id="runButton">Run Backtest</button>
+          <span id="loadingIndicator" style="display:none;">⏳ Running...</span>
+        </div>
+      </form>
+    </div>
+
+    <div class="section">
+      <h4>View Past Results</h4>
+      <div class="view-controls">
+        <label for="runSelector">Select Run:</label>
+        <select id="runSelector">
+          <option value="">-- Loading Runs --</option>
+        </select>
+        <button id="viewButton" disabled>View Results</button>
+      </div>
+    </div>
+
+    <div id="status-message" class="status-idle">Idle.</div>
+
+    <div id="resultsDisplay" style="display:none;">
+      <h4>Results for Run ID: <span id="resultsRunId"></span></h4>
+      <div>
+        <a id="summaryLink" href="#" target="_blank">📄 Summary Report</a>
+        &nbsp;|&nbsp;
+        <a id="detailedLink" href="#" target="_blank">🔍 Detailed Report</a>
+      </div>
+
+      <div class="tab-buttons" id="tabButtons"></div>
+      <div id="tabContents"></div>
+    </div>
+  </div>
+
+  <script>
+    const runForm = document.getElementById('backtestRunForm');
+    const runButton = document.getElementById('runButton');
+    const runSelector = document.getElementById('runSelector');
+    const viewButton = document.getElementById('viewButton');
+    const statusMessage = document.getElementById('status-message');
+    const resultsDisplay = document.getElementById('resultsDisplay');
+    const resultsRunId = document.getElementById('resultsRunId');
+
+    function updateStatus(msg, type = 'idle') {
+      statusMessage.textContent = msg;
+      statusMessage.className = `status-${type}`;
+    }
+
+    async function loadRuns() {
+      try {
+        const resp = await fetch('/runs');
+        const runIds = await resp.json();
+        runSelector.innerHTML = '<option value="">-- Select a Past Run --</option>';
+        runIds.forEach(runId => {
+          const opt = document.createElement('option');
+          opt.value = runId;
+          opt.textContent = runId;
+          runSelector.appendChild(opt);
+        });
+        viewButton.disabled = !runSelector.value;
+      } catch (err) {
+        console.error("Error loading runs", err);
+        runSelector.innerHTML = '<option>Error loading runs</option>';
+      }
+    }
+
+    // async function loadReport(runId) {
+    //   if (!runId) return;
+    //   updateStatus(`Loading ${runId}...`, 'running');
+    //   resultsRunId.textContent = runId;
+    //   document.getElementById('summaryLink').href = `/results_html/${runId}`;
+    //   document.getElementById('detailedLink').href = `/results_html/${runId}/detailed`;
+
+    //   try {
+    //     const resp = await fetch(`/results/${runId}`);
+    //     const data = await resp.json();
+    //     if (data.error) throw new Error(data.error);
+
+    //     //const results = data.html_report || data;
+    //     const results = data.html_report ? JSON.parse(data.html_report) : data;
+
+    //     const tabButtons = document.getElementById('tabButtons');
+    //     const tabContents = document.getElementById('tabContents');
+    //     tabButtons.innerHTML = '';
+    //     tabContents.innerHTML = '';
+
+    //     let first = true;
+    //     for (const [tf, res] of Object.entries(results)) {
+    //       const btn = document.createElement('button');
+    //       btn.textContent = tf;
+    //       btn.className = 'tab-button';
+    //       if (first) btn.classList.add('active');
+
+    //       const content = document.createElement('div');
+    //       content.className = 'tab-content';
+    //       if (first) content.classList.add('active');
+
+    //       btn.onclick = () => {
+    //         document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+    //         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    //         btn.classList.add('active');
+    //         content.classList.add('active');
+    //       };
+
+    //       if (!res || res.error) {
+    //         content.innerHTML = `<p style="color:red;">Error: ${res?.error || 'Missing data'}</p>`;
+    //       } else {
+    //         const trades = res.trades_details || res.trades || [];
+    //         const metricsHtml = Object.entries(res).filter(([k]) => k !== 'trades_details').map(
+    //           ([k, v]) => `<li><b>${k.replace(/_/g, ' ')}:</b> ${typeof v === 'number' ? v.toFixed(2) : v}</li>`
+    //         ).join('');
+
+    //         const tableRows = trades.slice(0, 10).map(t =>
+    //           `<tr><td>${t.EntryTime}</td><td>${t.ExitTime}</td><td>${t.Position}</td><td>${t.EntryPrice}</td><td>${t.ExitPrice}</td><td>${t.PnL_Points}</td><td>${t.ExitReason}</td><td>${t.StrategyName}</td></tr>`
+    //         ).join('');
+
+    //         content.innerHTML = `
+    //           <ul>${metricsHtml}</ul>
+    //           <table>
+    //             <thead><tr><th>Entry</th><th>Exit</th><th>Position</th><th>Entry Price</th><th>Exit Price</th><th>PnL</th><th>Reason</th><th>Strategy</th></tr></thead>
+    //             <tbody>${tableRows}</tbody>
+    //           </table>`;
+    //       }
+
+    //       tabButtons.appendChild(btn);
+    //       tabContents.appendChild(content);
+    //       first = false;
+    //     }
+
+    //     resultsDisplay.style.display = 'block';
+    //     updateStatus(`Loaded results for ${runId}`, 'success');
+    //   } catch (err) {
+    //     console.error(err);
+    //     updateStatus(`Error: ${err.message}`, 'error');
+    //   }
+    // }
+    async function loadReport(runId) {
+      if (!runId) return;
+      updateStatus(`Loading ${runId}...`, 'running');
+      resultsRunId.textContent = runId;
+      document.getElementById('summaryLink').href = `/results_html/${runId}`;
+      document.getElementById('detailedLink').href = `/results_html/${runId}/detailed`;
+
+      try {
+        const resp = await fetch(`/results/${runId}`);
+        const data = await resp.json();
+        if (data.error) throw new Error(data.error);
+
+        const results = data.html_report ? JSON.parse(data.html_report) : data;
+        const tabButtons = document.getElementById('tabButtons');
+        const tabContents = document.getElementById('tabContents');
+        tabButtons.innerHTML = '';
+        tabContents.innerHTML = '';
+
+        let first = true;
+        for (const [tf, res] of Object.entries(results)) {
+          const btn = document.createElement('button');
+          btn.textContent = tf;
+          btn.className = 'tab-button';
+          if (first) btn.classList.add('active');
+
+          const content = document.createElement('div');
+          content.className = 'tab-content';
+          if (first) content.classList.add('active');
+
+          btn.onclick = () => {
+            document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            btn.classList.add('active');
+            content.classList.add('active');
+          };
+
+          if (!res || res.error) {
+            content.innerHTML = `<p style="color:red;">Error: ${res?.error || 'Missing data'}</p>`;
+          } else {
+            const trades = res.trades_details || res.trades || [];
+            const metricsHtml = Object.entries(res).filter(([k]) => k !== 'trades_details').map(
+              ([k, v]) => `<li><b>${k.replace(/_/g, ' ')}:</b> ${typeof v === 'number' ? v.toFixed(2) : v}</li>`
+            ).join('');
+
+            //const tableRows = trades.slice(0, 10).map(t =>
+            const tableRows = trades.map(t =>
+              `<tr><td>${new Date(t.EntryTime).toLocaleString()}</td>
+<td>${new Date(t.ExitTime).toLocaleString()}</td>
+<td>${t.Position}</td><td>${t.EntryPrice}</td><td>${t.ExitPrice}</td><td>${t.PnL_Points}</td><td>${t.ExitReason}</td><td>${t.StrategyName}</td></tr>`
+            ).join('');
+
+            content.innerHTML = `
+          <ul>${metricsHtml}</ul>
+          <div class="table-container"><table>
+            <thead><tr><th>Entry</th><th>Exit</th><th>Position</th><th>Entry Price</th><th>Exit Price</th><th>PnL</th><th>Reason</th><th>Strategy</th></tr></thead>
+            <tbody>${tableRows}</tbody>
+          </table></div>`;
+          }
+
+          tabButtons.appendChild(btn);
+          tabContents.appendChild(content);
+          first = false;
+        }
+
+        resultsDisplay.style.display = 'block';
+        updateStatus(`Loaded results for ${runId}`, 'success');
+      } catch (err) {
+        console.error(err);
+        updateStatus(`Error: ${err.message}`, 'error');
+      }
+    }
+
+    runForm.onsubmit = async (e) => {
+      e.preventDefault();
+      updateStatus("Starting backtest...", "running");
+      const resp = await fetch('/start_backtest', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({})
+      });
+      const data = await resp.json();
+      if (data.run_id) {
+        updateStatus(`Run ${data.run_id} started.`, "running");
+        loadRuns();
+      } else {
+        updateStatus("Failed to start run", "error");
+      }
+    };
+
+    runSelector.onchange = () => {
+      viewButton.disabled = !runSelector.value;
+      if (!runSelector.value) resultsDisplay.style.display = 'none';
+    };
+
+    viewButton.onclick = () => {
+      const runId = runSelector.value;
+      if (runId) loadReport(runId);
+    };
+
+    updateStatus("Idle.");
+    loadRuns();
+  </script>
+</body>
+
+</html>
