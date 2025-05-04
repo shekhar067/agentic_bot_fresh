@@ -260,76 +260,6 @@
       }
     }
 
-    // async function loadReport(runId) {
-    //   if (!runId) return;
-    //   updateStatus(`Loading ${runId}...`, 'running');
-    //   resultsRunId.textContent = runId;
-    //   document.getElementById('summaryLink').href = `/results_html/${runId}`;
-    //   document.getElementById('detailedLink').href = `/results_html/${runId}/detailed`;
-
-    //   try {
-    //     const resp = await fetch(`/results/${runId}`);
-    //     const data = await resp.json();
-    //     if (data.error) throw new Error(data.error);
-
-    //     //const results = data.html_report || data;
-    //     const results = data.html_report ? JSON.parse(data.html_report) : data;
-
-    //     const tabButtons = document.getElementById('tabButtons');
-    //     const tabContents = document.getElementById('tabContents');
-    //     tabButtons.innerHTML = '';
-    //     tabContents.innerHTML = '';
-
-    //     let first = true;
-    //     for (const [tf, res] of Object.entries(results)) {
-    //       const btn = document.createElement('button');
-    //       btn.textContent = tf;
-    //       btn.className = 'tab-button';
-    //       if (first) btn.classList.add('active');
-
-    //       const content = document.createElement('div');
-    //       content.className = 'tab-content';
-    //       if (first) content.classList.add('active');
-
-    //       btn.onclick = () => {
-    //         document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
-    //         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-    //         btn.classList.add('active');
-    //         content.classList.add('active');
-    //       };
-
-    //       if (!res || res.error) {
-    //         content.innerHTML = `<p style="color:red;">Error: ${res?.error || 'Missing data'}</p>`;
-    //       } else {
-    //         const trades = res.trades_details || res.trades || [];
-    //         const metricsHtml = Object.entries(res).filter(([k]) => k !== 'trades_details').map(
-    //           ([k, v]) => `<li><b>${k.replace(/_/g, ' ')}:</b> ${typeof v === 'number' ? v.toFixed(2) : v}</li>`
-    //         ).join('');
-
-    //         const tableRows = trades.slice(0, 10).map(t =>
-    //           `<tr><td>${t.EntryTime}</td><td>${t.ExitTime}</td><td>${t.Position}</td><td>${t.EntryPrice}</td><td>${t.ExitPrice}</td><td>${t.PnL_Points}</td><td>${t.ExitReason}</td><td>${t.StrategyName}</td></tr>`
-    //         ).join('');
-
-    //         content.innerHTML = `
-    //           <ul>${metricsHtml}</ul>
-    //           <table>
-    //             <thead><tr><th>Entry</th><th>Exit</th><th>Position</th><th>Entry Price</th><th>Exit Price</th><th>PnL</th><th>Reason</th><th>Strategy</th></tr></thead>
-    //             <tbody>${tableRows}</tbody>
-    //           </table>`;
-    //       }
-
-    //       tabButtons.appendChild(btn);
-    //       tabContents.appendChild(content);
-    //       first = false;
-    //     }
-
-    //     resultsDisplay.style.display = 'block';
-    //     updateStatus(`Loaded results for ${runId}`, 'success');
-    //   } catch (err) {
-    //     console.error(err);
-    //     updateStatus(`Error: ${err.message}`, 'error');
-    //   }
-    // }
     async function loadReport(runId) {
       if (!runId) return;
       updateStatus(`Loading ${runId}...`, 'running');
@@ -405,19 +335,42 @@
     runForm.onsubmit = async (e) => {
       e.preventDefault();
       updateStatus("Starting backtest...", "running");
-      const resp = await fetch('/start_backtest', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({})
-      });
-      const data = await resp.json();
-      if (data.run_id) {
-        updateStatus(`Run ${data.run_id} started.`, "running");
-        loadRuns();
-      } else {
-        updateStatus("Failed to start run", "error");
+
+      try {
+        const resp = await fetch('/start_backtest', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({})
+        });
+        const data = await resp.json();
+
+        if (!data.run_id) {
+          updateStatus("Failed to start run", "error");
+          return;
+        }
+
+        const runId = data.run_id;
+        updateStatus(`Run ${runId} started.`, "running");
+
+        // Start polling status
+        const waitForFinish = async () => {
+          const statusResp = await fetch('/status');
+          const status = await statusResp.json();
+          if (status.running) {
+            setTimeout(waitForFinish, 3000);
+          } else {
+            updateStatus(status.message || "Done", "success");
+            await loadRuns(); // Refresh dropdown
+            await loadReport(runId); // Auto-load latest run
+          }
+        };
+
+        waitForFinish();
+      } catch (err) {
+        console.error(err);
+        updateStatus(`Error: ${err.message}`, "error");
       }
     };
 
@@ -433,6 +386,25 @@
 
     updateStatus("Idle.");
     loadRuns();
+    async function refreshRunDropdown(latestRunId = null) {
+      const resp = await fetch('/runs');
+      const runIds = await resp.json();
+      const dropdown = document.getElementById('runDropdown');
+      dropdown.innerHTML = '';
+      runIds.forEach(runId => {
+        const opt = document.createElement('option');
+        opt.value = runId;
+        opt.textContent = runId;
+        dropdown.appendChild(opt);
+      });
+
+      if (latestRunId) {
+        dropdown.value = latestRunId;
+      }
+    }
+    window.onload = async () => {
+      await refreshRunDropdown();
+    };
   </script>
 </body>
 

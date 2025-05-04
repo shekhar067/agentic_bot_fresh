@@ -264,8 +264,8 @@ new Chart(ctx, {
                     ${trades.map((t, i) => `
                       <tr>
                         <td>${i+1}</td>
-                        <td>${t.EntryTime}</td>
-                        <td>${t.ExitTime}</td>
+                        <td>${new Date(t.EntryTime).toLocaleString()}</td>
+<td>${new Date(t.ExitTime).toLocaleString()}</td>
                         <td>${t.Position}</td>
                         <td>${t.EntryPrice}</td>
                         <td>${t.ExitPrice}</td>
