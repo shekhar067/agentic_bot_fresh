@@ -214,6 +214,10 @@
     </div>
 
     <div id="status-message" class="status-idle">Idle.</div>
+    <div class="section" id="logDisplaySection" style="display:none;">
+      <h4>Live Logs for Run ID: <span id="logRunId"></span></h4>
+      <pre id="logOutput" style="max-height: 400px; overflow-y: scroll; background: #eee; border: 1px solid #ccc; padding: 10px; white-space: pre-wrap; word-wrap: break-word;"></pre>
+  </div>
 
     <div id="resultsDisplay" style="display:none;">
       <h4>Results for Run ID: <span id="resultsRunId"></span></h4>
@@ -229,6 +233,7 @@
   </div>
 
   <script>
+    //old code-------------
     const runForm = document.getElementById('backtestRunForm');
     const runButton = document.getElementById('runButton');
     const runSelector = document.getElementById('runSelector');
@@ -236,6 +241,7 @@
     const statusMessage = document.getElementById('status-message');
     const resultsDisplay = document.getElementById('resultsDisplay');
     const resultsRunId = document.getElementById('resultsRunId');
+    const logDisplaySection = document.getElementById('logDisplaySection');
 
     function updateStatus(msg, type = 'idle') {
       statusMessage.textContent = msg;
@@ -332,49 +338,51 @@
       }
     }
 
-    runForm.onsubmit = async (e) => {
-      e.preventDefault();
-      updateStatus("Starting backtest...", "running");
+    // runForm.onsubmit = async (e) => {
+    //   e.preventDefault();
+    //   updateStatus("Starting backtest...", "running");
 
-      try {
-        const resp = await fetch('/start_backtest', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({})
-        });
-        const data = await resp.json();
+    //   try {
+    //     const resp = await fetch('/start_backtest', {
+    //       method: 'POST',
+    //       headers: {
+    //         'Content-Type': 'application/json'
+    //       },
+    //       body: JSON.stringify({})
+    //     });
+    //     const data = await resp.json();
 
-        if (!data.run_id) {
-          updateStatus("Failed to start run", "error");
-          return;
-        }
+    //     if (!data.run_id) {
+    //       updateStatus("Failed to start run", "error");
+    //       return;
+    //     }
 
-        const runId = data.run_id;
-        updateStatus(`Run ${runId} started.`, "running");
+    //     const runId = data.run_id;
+    //     updateStatus(`Run ${runId} started.`, "running");
 
-        // Start polling status
-        const waitForFinish = async () => {
-          const statusResp = await fetch('/status');
-          const status = await statusResp.json();
-          if (status.running) {
-            setTimeout(waitForFinish, 3000);
-          } else {
-            updateStatus(status.message || "Done", "success");
-            await loadRuns(); // Refresh dropdown
-            await loadReport(runId); // Auto-load latest run
-          }
-        };
+    //     // Start polling status
+    //     const waitForFinish = async () => {
+    //       const statusResp = await fetch('/status');
+    //       const status = await statusResp.json();
+    //       if (status.running) {
+    //         setTimeout(waitForFinish, 3000);
+    //       } else {
+    //         updateStatus(status.message || "Done", "success");
+    //         await loadRuns(); // Refresh dropdown
+    //         await loadReport(runId); // Auto-load latest run
+    //       }
+    //     };
 
-        waitForFinish();
-      } catch (err) {
-        console.error(err);
-        updateStatus(`Error: ${err.message}`, "error");
-      }
-    };
-
-    runSelector.onchange = () => {
+    //     waitForFinish();
+    //   } catch (err) {
+    //     console.error(err);
+    //     updateStatus(`Error: ${err.message}`, "error");
+    //   }
+    // };
+//---- old code ends
+  
+//new code starts
+runSelector.onchange = () => {
       viewButton.disabled = !runSelector.value;
       if (!runSelector.value) resultsDisplay.style.display = 'none';
     };
@@ -384,8 +392,7 @@
       if (runId) loadReport(runId);
     };
 
-    updateStatus("Idle.");
-    loadRuns();
+   
     async function refreshRunDropdown(latestRunId = null) {
       const resp = await fetch('/runs');
       const runIds = await resp.json();
@@ -405,6 +412,129 @@
     window.onload = async () => {
       await refreshRunDropdown();
     };
+
+    function startLogStreaming(runId) {
+    if (eventSource) {
+        eventSource.close(); // Close previous connection if any
+    }
+    logOutput.textContent = ''; // Clear previous logs
+    logRunId.textContent = runId;
+    logDisplaySection.style.display = 'block';
+    updateStatus(`Run ${runId} started. Streaming logs...`, 'running'); // Update status
+
+    eventSource = new EventSource(`/stream_logs/${runId}`);
+
+    eventSource.onmessage = function(event) {
+        logOutput.textContent += event.data + '\n';
+        // Auto-scroll to bottom
+        logOutput.scrollTop = logOutput.scrollHeight;
+    };
+
+    eventSource.onerror = function(error) {
+        console.error("EventSource failed:", error);
+        logOutput.textContent += "--- Log stream error or closed ---\n";
+        eventSource.close();
+        eventSource = null;
+        // Optionally check final status again here
+        checkFinalStatus(runId);
+    };
+}
+
+// --- Function to stop streaming ---
+function stopLogStreaming() {
+    if (eventSource) {
+        eventSource.close();
+        eventSource = null;
+        logOutput.textContent += "--- Log stream stopped by user/completion ---\n";
+        logOutput.scrollTop = logOutput.scrollHeight;
+    }
+     // Hide log section when explicitly stopped or naturally ends and status is updated
+     // logDisplaySection.style.display = 'none'; // Re-enable if desired when stopped
+}
+
+ // --- Function to check final status after stream closes ---
+ async function checkFinalStatus(runId) {
+     try {
+         const statusResp = await fetch('/status');
+         const status = await statusResp.json();
+         if (status.run_id === runId && !status.running) {
+             updateStatus(status.message || `Run ${runId} finished.`, status.error ? 'error' : 'success');
+         }
+     } catch (err) {
+         console.error("Error checking final status:", err);
+     }
+ }
+
+
+    // --- Corrected onsubmit Handler ---
+    runForm.onsubmit = async (e) => {
+        e.preventDefault(); // Prevent default GET submission
+        logDisplaySection.style.display = 'none'; // Hide logs initially
+        updateStatus("Triggering backtest via pipeline_manager...", "running");
+        stopLogStreaming(); // Ensure any old stream is closed
+
+        try {
+            // **** Use fetch with POST method ****
+            const resp = await fetch('/start_backtest', {
+                 method: 'POST', // Specify POST
+                 headers: {
+                     'Content-Type': 'application/json'
+                 },
+                 // Send empty JSON body as Flask expects request.json
+                 body: JSON.stringify({})
+            });
+            // **** End fetch block ****
+
+            if (!resp.ok) { // Check if response status is ok (e.g., 200)
+                const errorData = await resp.json();
+                throw new Error(errorData.error || `Failed to start run (Status: ${resp.status})`);
+            }
+
+            const data = await resp.json();
+
+            if (!data.run_id) {
+                 throw new Error("Failed to get run_id from server.");
+            }
+            const runId = data.run_id;
+
+            // Start log streaming
+            startLogStreaming(runId);
+
+            // Start polling status (same as before)
+            const waitForFinish = async () => {
+                // ... (keep the existing waitForFinish polling logic) ...
+                 const statusResp = await fetch('/status');
+                 const status = await statusResp.json();
+                 if (status.run_id !== runId) {
+                      console.log(`Stopping monitoring for ${runId} as new run ${status.run_id} is active.`);
+                      stopLogStreaming(); return;
+                 }
+                 if (status.running) {
+                      updateStatus(status.message || `Run ${runId} running...`, 'running');
+                      setTimeout(waitForFinish, 3000);
+                 } else {
+                      updateStatus(status.message || `Run ${runId} finished.`, status.error ? 'error' : 'success');
+                      stopLogStreaming();
+                      await loadRuns();
+                 }
+            };
+            waitForFinish();
+
+        } catch (err) {
+            console.error("Error starting backtest:", err);
+            updateStatus(`Error: ${err.message}`, "error");
+            stopLogStreaming(); // Ensure stream is closed on error
+        }
+    };
+ // --- Add cleanup if user navigates away ---
+ window.addEventListener('beforeunload', () => {
+     if (eventSource) {
+         eventSource.close();
+     }
+ });
+ updateStatus("Idle.");
+ loadRuns();
+ //new code ends
   </script>
 </body>
 

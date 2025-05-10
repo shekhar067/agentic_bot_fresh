@@ -29,7 +29,9 @@ def load_historical_data(file_name: str) -> pd.DataFrame:
         raise FileNotFoundError(f"Data file not found: {file_path}")
     try:
         # (Keep the try block with pd.read_csv, datetime handling, column checks, etc.)
-        df = pd.read_csv(file_path)
+        #df = pd.read_csv(file_path)
+        df = pd.read_csv(file_path, encoding="utf-8")
+
         datetime_col = None
         possible_dt_cols = ['datetime', 'date', 'timestamp', 'time']
         for col in possible_dt_cols:
@@ -72,5 +74,33 @@ def load_historical_data(file_name: str) -> pd.DataFrame:
     except Exception as e:
         logger.error(f"Failed to load or process data from {file_path}: {e}", exc_info=True)
         raise
+# In app/data_io.py
+
+
+logger = logging.getLogger(__name__)
+if not logger.hasHandlers():
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger.setLevel(logging.INFO)
+
+def load_feature_data(symbol: str, timeframe: str, base_dir: Path = Path("data/datawithindicator")) -> pd.DataFrame:
+    """
+    Loads feature-engineered data for a given symbol and timeframe.
+    Assumes files are named like `nifty__5min_with_indicators.csv`.
+    """
+    filename = f"{symbol}__{timeframe}_with_indicators.csv"
+    file_path = base_dir / filename
+
+    if not file_path.exists():
+        logger.error(f"Feature file not found: {file_path}")
+        return pd.DataFrame()
+
+    try:
+        df = pd.read_csv(file_path, parse_dates=["datetime"], index_col="datetime")
+        df.columns = df.columns.str.lower() 
+        logger.info(f"Loaded feature data from: {file_path} ({len(df)} rows)")
+        return df
+    except Exception as e:
+        logger.exception(f"Failed to load feature data: {e}")
+        return pd.DataFrame()
 
 # --- END OF FUNCTION ---
