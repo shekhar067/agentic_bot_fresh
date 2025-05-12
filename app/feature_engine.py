@@ -198,7 +198,46 @@ class IndicatorCalculator:
         return df
 
     def _add_expiry_features(self, df: pd.DataFrame, symbol: str, exchange: str) -> pd.DataFrame:
+    #     logger.debug(f"Attempting to add expiry features for {symbol} on {exchange}...")
+    #     if not isinstance(df.index, pd.DatetimeIndex):
+    #         logger.error("DatetimeIndex required for adding expiry features. Skipping.")
+    #         return df
+
+    #     if df.empty:
+    #         logger.warning("DataFrame is empty. Skipping expiry features.")
+    #         return df
+
+    #     try:
+    #         # Apply expiry-related logic using date index
+           
+    #         # Ensure datetime index and expiry dates are tz-naive for arithmetic
+    #          #Ensure both columns are tz-naive
+    #         expiry_dates = pd.to_datetime(df['next_weekly_expiry_dt_temp']).dt.tz_localize(None)
+    #         index_dates = pd.to_datetime(df.index).tz_localize(None)
+
+    #         df['days_to_weekly_expiry'] = (expiry_dates - index_dates).days
+
+    #        # df['days_to_weekly_expiry'] = (pd.to_datetime(df['next_weekly_expiry_dt_temp']) - pd.to_datetime(df.index)).dt.days
+
+    #         df['is_expiry_day_flag'] = df.index.to_series().apply(
+    #             lambda dt_idx: 1 if is_expiry_day(symbol, dt_idx, exchange) else 0
+    #         )
+
+    #         df['week_expiry_type'] = df['next_weekly_expiry_dt_temp'].apply(
+    #             lambda exp_date_dt: get_expiry_type(symbol, exp_date_dt, exchange) if pd.notna(exp_date_dt) else 'none'
+    #         )
+
+    #         df.drop(columns=['next_weekly_expiry_dt_temp'], inplace=True, errors='ignore')
+    #         logger.info("Expiry features (days_to_weekly_expiry, is_expiry_day_flag, week_expiry_type) added.")
+    #     except Exception as e:
+    #         logger.error(f"Error adding expiry features for {symbol}: {e}", exc_info=True)
+    #         for col in ['days_to_weekly_expiry', 'is_expiry_day_flag', 'week_expiry_type']:
+    #             if col not in df.columns:
+    #                 df[col] = np.nan if 'days' in col else (0 if 'flag' in col else 'unknown')
+    #     return df
+    #def _add_expiry_features(self, df: pd.DataFrame, symbol: str, exchange: str) -> pd.DataFrame:
         logger.debug(f"Attempting to add expiry features for {symbol} on {exchange}...")
+
         if not isinstance(df.index, pd.DatetimeIndex):
             logger.error("DatetimeIndex required for adding expiry features. Skipping.")
             return df
@@ -208,16 +247,16 @@ class IndicatorCalculator:
             return df
 
         try:
-            # Apply expiry-related logic using date index
-           
-            # Ensure datetime index and expiry dates are tz-naive for arithmetic
-             #Ensure both columns are tz-naive
+            # ✅ Step 1: Generate the missing column first
+            df['next_weekly_expiry_dt_temp'] = df.index.to_series().apply(
+                lambda ts: get_expiry_date_for_week_of(symbol, ts, exchange)
+            )
+
+            # ✅ Step 2: Proceed with your original logic
             expiry_dates = pd.to_datetime(df['next_weekly_expiry_dt_temp']).dt.tz_localize(None)
             index_dates = pd.to_datetime(df.index).tz_localize(None)
 
-            df['days_to_weekly_expiry'] = (expiry_dates - index_dates).days
-
-           # df['days_to_weekly_expiry'] = (pd.to_datetime(df['next_weekly_expiry_dt_temp']) - pd.to_datetime(df.index)).dt.days
+            df['days_to_weekly_expiry'] = (expiry_dates - index_dates).dt.days
 
             df['is_expiry_day_flag'] = df.index.to_series().apply(
                 lambda dt_idx: 1 if is_expiry_day(symbol, dt_idx, exchange) else 0
@@ -229,11 +268,13 @@ class IndicatorCalculator:
 
             df.drop(columns=['next_weekly_expiry_dt_temp'], inplace=True, errors='ignore')
             logger.info("Expiry features (days_to_weekly_expiry, is_expiry_day_flag, week_expiry_type) added.")
+
         except Exception as e:
             logger.error(f"Error adding expiry features for {symbol}: {e}", exc_info=True)
             for col in ['days_to_weekly_expiry', 'is_expiry_day_flag', 'week_expiry_type']:
                 if col not in df.columns:
                     df[col] = np.nan if 'days' in col else (0 if 'flag' in col else 'unknown')
+
         return df
 
     def calculate_all_indicators(self, df: pd.DataFrame, symbol: str, exchange: str = "NSE") -> pd.DataFrame:
